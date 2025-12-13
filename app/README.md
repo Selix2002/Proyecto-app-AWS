@@ -78,8 +78,11 @@ Esto ejecuta:
 * **Backend (API):**
   [http://localhost:3000](http://localhost:3000)
 
-El frontend se comunica con el backend mediante un **proxy configurado en Vite**, por lo que las peticiones se realizan a rutas `/api/...`.
+El frontend se comunica con el backend mediante un **proxy configurado en Vite**, por lo que las peticiones se realizan a rutas `/api/...`. Para ver la página acceder a:
 
+```bash
+http://localhost:5173/libreria/index.html
+```
 ---
 
 ## ⚙️ Comandos disponibles

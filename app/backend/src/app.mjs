@@ -8,7 +8,6 @@ import dotenv from "dotenv";
 import cors from "cors";
 
 dotenv.config();  
-asd
 
 import { model } from "../model/model.mjs";
 

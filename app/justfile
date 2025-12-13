@@ -1,16 +1,10 @@
 set shell := ["bash", "-cu"]
 
 backend:
-    cd backend
-    npm run start
+    cd backend && npm run start
 
 frontend:
-    cd frontend
-    npm run dev
-
-dev:
-    just backend &
-    just frontend
+    cd frontend && npm run dev
 
 install:
     cd backend && npm install
