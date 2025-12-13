@@ -1,0 +1,18 @@
+<section class="auth">
+  <h2>Registro</h2>
+  <form id="registerForm" novalidate>
+    <label>DNI<br/><input id="dni" required /></label>
+    <label>Nombres<br/><input id="nombres" required /></label>
+    <label>Apellidos<br/><input id="apellidos" required /></label>
+    <label>Dirección<br/><input id="direccion" required /></label>
+    <label>Teléfono<br/><input id="telefono" required /></label>
+    <label>Email<br/><input id="email" type="email" required /></label>
+    <label>Contraseña<br/><input id="password" type="password" required minlength="4" /></label>
+    <label>Confirmar contraseña<br/><input id="password2" type="password" required minlength="4" /></label>
+    <select id="rol">
+      <option value="cliente">Cliente</option>
+      <option value="admin">Administrador</option>
+    </select>
+    <button type="submit">Crear cuenta</button>
+  </form>
+</section>

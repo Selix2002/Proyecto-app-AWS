@@ -1,0 +1,27 @@
+{
+  "name": "proyect1",
+  "version": "1.0.0",
+  "type": "module",
+  "main": "app.mjs",
+  "scripts": {
+    "start": "node server.mjs && echo 'http://localhost:3000/libreria/index.html'",
+    "test:api": "mocha \"test/test_app/**/*.spec.mjs\"",
+    "test:model": "MONGO_URI=mongodb://127.0.0.1:27017/libreria_test mocha \"test/test_model/**/*.spec.mjs\" --experimental-vm-modules",
+    "test-server": "NODE_ENV=test node server.mjs"
+  },
+  "dependencies": {
+    "bcrypt": "^6.0.0",
+    "cors": "^2.8.5",
+    "dotenv": "^17.2.3",
+    "express": "^4.19.2",
+    "jsonwebtoken": "^9.0.2",
+    "mongoose": "^9.0.0",
+    "passport": "^0.7.0",
+    "passport-jwt": "^4.0.1"
+  },
+  "devDependencies": {
+    "chai": "^6.2.1",
+    "mocha": "^11.7.5",
+    "supertest": "^7.1.4"
+  }
+}

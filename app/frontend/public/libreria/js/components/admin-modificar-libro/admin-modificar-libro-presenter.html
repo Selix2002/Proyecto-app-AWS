@@ -1,0 +1,28 @@
+<section class="form-libro">
+  <h2>Modificar libro</h2>
+
+  <form id="editBookForm" novalidate>
+    <label for="isbn">ISBN</label>
+    <textarea id="isbn" rows="1" placeholder="978-3-16-148410-0"></textarea>
+
+    <label for="titulo">Título</label>
+    <textarea id="titulo" rows="1" placeholder="Un título de ejemplo"></textarea>
+
+    <label for="autores">Autores</label>
+    <textarea id="autores" rows="1" placeholder="Autor A; Autor B"></textarea>
+
+    <label for="resumen">Resumen</label>
+    <textarea id="resumen" rows="8" placeholder="Descripción / sinopsis"></textarea>
+
+    <label for="stock">Stock</label>
+    <input id="stock" type="number" min="0" step="1" />
+
+    <label for="precio">Precio €</label>
+    <input id="precio" type="number" min="0" step="0.01" />
+
+    <div class="actions">
+      <button id="cancelEdit" type="button">Cancelar</button>
+      <button id="saveBook"  type="submit">Modificar</button>
+    </div>
+  </form>
+</section>

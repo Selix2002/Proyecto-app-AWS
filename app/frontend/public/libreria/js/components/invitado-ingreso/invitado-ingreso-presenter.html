@@ -1,0 +1,21 @@
+<section class="auth">
+  <h2>Ingresar</h2>
+
+  <form id="loginForm" novalidate>
+<label>Tipo de cuenta
+  <select id="rol" required>
+    <option value="cliente">Cliente</option>
+    <option value="admin">Administrador</option>
+  </select>
+</label>
+
+
+    <label>Email<br/><input id="email" type="email" required /></label><br/>
+    <label>Contraseña<br/><input id="password" type="password" required /></label><br/>
+    <button type="submit">Entrar</button>
+  </form>
+
+  <p id="loginError" class="error" hidden></p>
+
+  <p>¿No tienes cuenta? <a href="invitado-registro.html">Regístrate</a></p>
+</section>

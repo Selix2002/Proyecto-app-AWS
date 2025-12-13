@@ -1,0 +1,39 @@
+<section class="carrito">
+  <h2>Mi carrito</h2>
+  <div id="emptyMsg" class="empty" hidden>Tu carrito está vacío.</div>
+  <table id="cartTable" class="cart-table" hidden>
+    <thead>
+      <tr>
+        <th>Libro</th>
+        <th>Precio</th>
+        <th>Cantidad</th>
+        <th>Subtotal</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody id="cartBody"></tbody>
+    <tfoot>
+      <tr>
+        <td colspan="3" class="total-label">Subtotal</td>
+        <td id="cartSubtotal" class="total-value">€ 0</td>
+        <td></td>
+      </tr>
+      <tr>
+        <td colspan="3" class="total-label">
+          IVA (<span id="cartIvaRate">4%</span>)
+        </td>
+        <td id="cartIva" class="total-value">€ 0</td>
+        <td></td>
+      </tr>
+      <tr>
+        <td colspan="3" class="total-label total-final">TOTAL</td>
+        <td id="cartTotal" class="total-value total-final">€ 0</td>
+        <td></td>
+      </tr>
+    </tfoot>
+  </table>
+  <div class="actions" id="cartActions" hidden>
+    <button id="seguirComprando">Seguir comprando</button>
+    <button id="checkout" disabled>Continuar a compra</button>
+  </div>
+</section>

@@ -1,0 +1,46 @@
+<section class="form-libro">
+  <h2>Agregar libro</h2>
+
+  <form id="formLibro" novalidate>
+    <div>
+      <label for="isbn">ISBN</label>
+      <input id="isbn" type="text" placeholder="978-..." />
+      <small class="hint">Opcional. Formato libre para esta práctica.</small>
+    </div>
+
+    <div>
+      <label for="titulo">Título *</label>
+      <input id="titulo" type="text" required placeholder="Título del libro" />
+    </div>
+
+    <div>
+      <label for="autores">Autores *</label>
+      <input id="autores" type="text" required placeholder="Autor(es)" />
+      <small class="hint">Separa múltiples autores con coma.</small>
+    </div>
+
+    <div>
+      <label for="resumen">Resumen</label>
+      <textarea id="resumen" rows="4" placeholder="Breve descripción"></textarea>
+    </div>
+
+    <div>
+      <label for="stock">Stock *</label>
+      <input id="stock" type="number" min="0" step="1" required value="0" />
+    </div>
+
+    <div>
+      <label for="precio">Precio (€) *</label>
+      <input id="precio" type="number" min="0" step="0.01" required value="0.00" />
+    </div>
+
+    <div class="actions">
+      <button type="submit" id="btnGuardar">Guardar</button>
+      <button type="button" id="btnLimpiar">Limpiar</button>
+      <a href="admin-home.html" id="linkCancelar">Cancelar</a>
+    </div>
+
+    <p id="formError" class="error" hidden></p>
+    <p id="formOk" class="ok" hidden></p>
+  </form>
+</section>

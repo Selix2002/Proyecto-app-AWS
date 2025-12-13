@@ -1,0 +1,57 @@
+<section class="checkout">
+  <h2>Factura</h2>
+
+  <div class="grid-2">
+    <!-- Columna izquierda: datos -->
+    <div>
+      <label>Fecha
+        <input id="fFecha" type="text" disabled>
+      </label>
+      <label>DNI
+        <input id="fDni" type="text" disabled>
+      </label>
+      <label>Razón social
+        <input id="fRazon" type="text" disabled>
+      </label>
+      <label>Dirección
+        <input id="fDir" type="text" disabled>
+      </label>
+      <label>Email
+        <input id="fEmail" type="text" disabled>
+      </label>
+    </div>
+
+    <!-- Columna derecha: tabla + totales -->
+    <div>
+      <table class="resume-table" id="fTabla">
+        <thead>
+          <tr>
+            <th>Cant.</th>
+            <th>Descripción</th>
+            <th>Precio</th>
+            <th>Subtotal</th>
+          </tr>
+        </thead>
+        <tbody id="fBody"></tbody>
+        <tfoot>
+          <tr>
+            <td colspan="3" class="total-label">Subtotal</td>
+            <td id="fSub" class="total-value">€ 0,00</td>
+          </tr>
+          <tr>
+            <td colspan="3" class="total-label">IVA <span id="fIvaRate"></span></td>
+            <td id="fIva" class="total-value">€ 0,00</td>
+          </tr> 
+          <tr>
+            <td colspan="3" class="total-label total-final">Total</td>
+            <td id="fTot" class="total-value total-final">€ 0,00</td>
+          </tr>
+        </tfoot>
+      </table>
+
+      <div class="actions">
+        <button id="volverBtn">Volver</button>
+      </div>
+    </div>
+  </div>
+</section>

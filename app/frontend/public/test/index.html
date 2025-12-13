@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <title>Tests - Proxy</title>
+
+  <link rel="stylesheet" href="./mocha.css" />
+</head>
+<body>
+  <div id="mocha"></div>
+
+  <script src="./mocha.js"></script>
+  <script>
+    mocha.setup({ ui: 'bdd' });
+  </script>
+
+  <script src="./chai.js"></script>
+  <script>
+  </script>
+
+  <script type="module" src="../libreria/js/model/proxy.mjs"></script>
+  <script type="module" src="./spec/calculos.spec.mjs"></script>
+  <script type="module" src="./spec/excepciones.spec.mjs"></script>
+  <script type="module" src="./spec/crud.spec.mjs"></script>
+
+  <script>
+    mocha.run();
+  </script>
+</body>
+</html>
