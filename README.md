@@ -22,9 +22,9 @@ El equipo está compuesto por 4 integrantes. Tres de ellos se especializan en un
 | Integrante                       | Rol Principal                             | Servicio / Enfoque         | Módulos / Carpetas Clave                            |
 | :------------------------------- | :---------------------------------------- | :-------------------------- | :-------------------------------------------------- |
 | **Diseñador / Desarrollador app**| Lógica de negocio y modelo de datos       | App (código)               | `app/backend/`, `app/frontend/`, capa `model/`      |
-| **Integrante S3**                | Infraestructura de frontend estático      | Amazon S3                  | `infra/modules/s3_frontend/`, `infra/envs/integrante2/` |
-| **Integrante DynamoDB**         | Modelo de datos en la nube (NoSQL)        | Amazon DynamoDB            | `infra/modules/dynamodb/`, `infra/envs/integrante3/`    |
-| **Integrante Lambda**           | Backend serverless + permisos y logs      | AWS Lambda + IAM/CloudWatch| `infra/modules/lambda_backend/`, `infra/modules/iam_monitoring/`, `infra/envs/integrante4/` |
+| **Integrante S3**                | Infraestructura de frontend estático      | Amazon S3                  | `infra/modules/s3_frontend/`, `infra/envs/Dev-s3/` |
+| **Integrante DynamoDB**         | Modelo de datos en la nube (NoSQL)        | Amazon DynamoDB            | `infra/modules/dynamodb/`, `infra/envs/Dev-dynamodb/`    |
+| **Integrante Lambda**           | Backend serverless + permisos y logs      | AWS Lambda + IAM/CloudWatch| `infra/modules/lambda_backend/`, `infra/modules/iam_monitoring/`, `infra/envs/Dev-lambda/` |
 
 ### Detalle de responsabilidades
 
