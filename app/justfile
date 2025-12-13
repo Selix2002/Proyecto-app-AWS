@@ -1,0 +1,21 @@
+set shell := ["bash", "-cu"]
+
+backend:
+    cd backend
+    npm run start
+
+frontend:
+    cd frontend
+    npm run dev
+
+dev:
+    just backend &
+    just frontend
+
+install:
+    cd backend && npm install
+    cd frontend && npm install
+dev:
+    trap 'kill 0' SIGINT
+    just backend &
+    just frontend

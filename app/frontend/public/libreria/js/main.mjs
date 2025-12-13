@@ -1,3 +1,4 @@
+//public/libreria/js/main.mjs
 import { proxy } from "./model/proxy.mjs";
 import { router } from "./commons/router.mjs";
 import { LibreriaSession } from "./commons/libreria-session.mjs";
