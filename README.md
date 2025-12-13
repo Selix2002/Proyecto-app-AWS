@@ -90,7 +90,6 @@ El equipo está compuesto por 4 integrantes. Tres de ellos se especializan en un
     - `iam_monitoring`
     - `lambda_backend`
   - Se conectan los outputs de `dynamodb` e `iam_monitoring` como inputs de `lambda_backend`.
-- El **Diseñador / Desarrollador de la app** coordina este entorno y lo usa para las pruebas finales y la demo.
 
 ## 3. 📂 Organización del Código
 
@@ -109,10 +108,10 @@ libreria-aws/
 │   │   ├── dynamodb/
 │   │   └── iam_monitoring/
 │   └── envs/             # Entornos por persona + entorno compartido
-│       ├── Diseñador/    
-│       ├── integrante2/
-│       ├── integrante3/
-│       ├── integrante4/
+│       ├── Dev-app/    
+│       ├── Dev-s3/
+│       ├── Dev-lambda/
+│       ├── Dev-dynamodb/
 │       └── shared/       # Entorno "oficial" de proyecto (todo integrado)
 └── README.md
 ````
@@ -155,10 +154,10 @@ Cada entorno es un conjunto de archivos Terraform que instancia los módulos en 
 
 | Entorno                   | Integrante                       | Alcance de Despliegue                                  | Uso Principal                                                     |
 | :------------------------ | :------------------------------- | :----------------------------------------------------- | :---------------------------------------------------------------- |
-| `infra/envs/Diseñador/`   | Diseñador / Desarrollador de app | Puede reutilizar módulos existentes según necesite     | Pruebas desde la **aplicación** (debug de backend y modelo contra la infra). |
-| `infra/envs/integrante2/` | Integrante S3                    | Instancia solo `s3_frontend`                          | Pruebas de despliegue de **frontend** y verificación del endpoint estático. |
-| `infra/envs/integrante3/` | Integrante DynamoDB              | Instancia solo `dynamodb`                             | Pruebas de **modelo de datos** (tablas, GSIs, estructura de items).         |
-| `infra/envs/integrante4/` | Integrante Lambda                | Instancia `iam_monitoring` + `lambda_backend`         | Pruebas de **backend serverless** (Lambda, Function URL, permisos y logs).  |
+| `infra/envs/Dev-app/`     | Diseñador / Desarrollador de app | Puede reutilizar módulos existentes según necesite     | Pruebas desde la **aplicación** (debug de backend y modelo contra la infra). |
+| `infra/envs/Dev-s3/`      | Integrante S3                    | Instancia solo `s3_frontend`                          | Pruebas de despliegue de **frontend** y verificación del endpoint estático. |
+| `infra/envs/Dev-dynamodb/`| Integrante DynamoDB              | Instancia solo `dynamodb`                             | Pruebas de **modelo de datos** (tablas, GSIs, estructura de items).         |
+| `infra/envs/Dev-lambda/`  | Integrante Lambda                | Instancia `iam_monitoring` + `lambda_backend`         | Pruebas de **backend serverless** (Lambda, Function URL, permisos y logs).  |
 | **`infra/envs/shared/`**  | Coordinado por el Diseñador      | **Todos los módulos** interconectados                 | **Despliegue oficial** (demo / entorno integrado de proyecto).             |
 
 **Ejemplo de interconexión (`infra/envs/shared/`):**
@@ -297,7 +296,7 @@ output "website_endpoint" {
 
 ---
 
-### 7.2. Ejemplo de entorno: `infra/envs/integrante2/`
+### 7.2. Ejemplo de entorno: `infra/envs/Dev-s3/`
 
 Este entorno lo usa el **Integrante S3** para probar únicamente el despliegue del frontend en S3, de forma aislada del resto de la arquitectura.
 
@@ -374,17 +373,17 @@ La idea es:
 
 * Cada integrante trabaja en **su entorno personal**, alineado con su rol:
 
-  * `infra/envs/Diseñador/` → Diseñador / Desarrollador de la app (pruebas contra la infraestructura ya creada).
-  * `infra/envs/integrante2/` → Integrante S3 (pruebas de bucket y static website).
-  * `infra/envs/integrante3/` → Integrante DynamoDB (pruebas de tablas e índices).
-  * `infra/envs/integrante4/` → Integrante Lambda (pruebas de Lambda + IAM + logs).
+  * `infra/envs/Dev-app/` → Diseñador / Desarrollador de la app (pruebas contra la infraestructura ya creada).
+  * `infra/envs/Dev-s3/` → Integrante S3 (pruebas de bucket y static website).
+  * `infra/envs/Dev-dynamodb/` → Integrante DynamoDB (pruebas de tablas e índices).
+  * `infra/envs/Dev-lambda/` → Integrante Lambda (pruebas de Lambda + IAM + logs).
 * El entorno `infra/envs/shared/` se usa solo para el **despliegue integrado final** (demo con todos los servicios conectados).
 
-### Ejemplo: ejecutar Terraform como Integrante S3 (`infra/envs/integrante2/`)
+### Ejemplo: ejecutar Terraform como Integrante S3 (`infra/envs/Dev-s3/`)
 
 ```bash
 # Ubicarse en el entorno personal del Integrante S3
-cd infra/envs/integrante2
+cd infra/envs/Dev-s3
 
 # Inicializar Terraform (solo la primera vez o tras cambiar providers)
 terraform init
@@ -407,10 +406,9 @@ terraform apply
 ```
 
 > 🔐 **Importante:**
-> Antes de ejecutar estos comandos, cada integrante debe tener configurado su `AWS_PROFILE` o variables de entorno (`AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`) apuntando a **su propia cuenta de AWS**. El entorno `shared/` se coordina normalmente desde la cuenta del Diseñador/Dev de la app (o la que acuerde el grupo para la demo final).
-
+> Antes de ejecutar estos comandos, cada integrante debe tener configurado su `AWS_PROFILE` o variables de entorno (`AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`) apuntando a **su propia cuenta de AWS**.
+> 
 ```
-::contentReference[oaicite:0]{index=0}
 ```
 
 
@@ -419,17 +417,17 @@ Terraform **no se ejecuta desde los módulos**, sino desde los **entornos** en `
 La idea es:
 
 - Cada integrante trabaja en **su entorno personal**:
-  - `infra/envs/Diseñador/`
-  - `infra/envs/integrante2/`
-  - `infra/envs/integrante3/`
-  - `infra/envs/integrante4/`
+  - `infra/envs/Dev-app/`
+  - `infra/envs/Dev-s3/`
+  - `infra/envs/Dev-lambda/`
+  - `infra/envs/Dev-dynamodb/`
 - El entorno `infra/envs/shared/` se usa solo para el **despliegue integrado final**.
 
 ### Ejemplo: ejecutar Terraform como integrante2
 
 ```bash
 # Ubicarse en el entorno personal
-cd infra/envs/integrante2
+cd infra/envs/Dev-s3
 
 # Inicializar Terraform (solo la primera vez o tras cambiar providers)
 terraform init
@@ -452,4 +450,5 @@ terraform apply
 ```
 
 > 🔐 **Importante:**
+
 > Antes de ejecutar estos comandos, cada integrante debe tener configurado su `AWS_PROFILE` o variables de entorno (`AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`) apuntando a **su propia cuenta de AWS**.
