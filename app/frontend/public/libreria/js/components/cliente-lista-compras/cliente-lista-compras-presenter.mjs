@@ -23,6 +23,7 @@ export class ClienteListaComprasPresenter extends Presenter {
     }
 
     try {
+      console.log("Cargando historial de compras para el usuario:", user);
       const compras = await this.model.getFacturasPorCliente(user.id);
       const empty = this.parentElement.querySelector('#emptyCompras');
       const table = this.parentElement.querySelector('#tablaCompras');

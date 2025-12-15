@@ -37,7 +37,7 @@ export const LibreriaSession = {
     const sess = {
       user: user
         ? {
-            id: user._id ?? user.id,
+            id: user.id ?? user.id,
             dni: user.dni,
             nombres: user.nombres,
             apellidos: user.apellidos,

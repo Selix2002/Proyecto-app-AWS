@@ -11,6 +11,7 @@ export class InvitadoVerLibroPresenter extends Presenter {
   async getLibro() {
     if (!this.id) return null;
     try {
+      console.log("Presenter: obteniendo libro con id:", this.id);
       const libro = await this.model.getLibroPorId(this.id);
       return libro;
     } catch (err) {

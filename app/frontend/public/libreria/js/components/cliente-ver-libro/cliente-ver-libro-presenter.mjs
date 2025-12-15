@@ -54,7 +54,7 @@ export class ClienteVerLibroPresenter extends Presenter {
         return;
       }
 
-      await this.model.addClienteCarroItem(user.id, libro._id, 1);
+      await this.model.addClienteCarroItem(user.id, libro.id, 1);
 
       mostrarModal(`"${libro.titulo}" agregado al carrito`, "ok");
       router.navigate("cliente-carrito.html");

@@ -1,0 +1,396 @@
+{
+  "Books": [
+    [
+      "BOOK#978-0131103627||META#",
+      {
+        "pk": "BOOK#978-0131103627",
+        "sk": "META#",
+        "isbn": "978-0131103627",
+        "titulo": "The C Programming Language",
+        "autores": "Brian W. Kernighan, Dennis M. Ritchie",
+        "resumen": "Clásico fundamental del lenguaje C",
+        "stock": 4,
+        "precio": 45,
+        "createdAt": "2025-12-13T17:12:39.968Z"
+      }
+    ],
+    [
+      "BOOK#978-1492056355||META#",
+      {
+        "pk": "BOOK#978-1492056355",
+        "sk": "META#",
+        "isbn": "978-1492056355",
+        "titulo": "Learning JavaScript",
+        "autores": "Ethan Brown",
+        "resumen": "Introducción práctica a JavaScript moderno",
+        "stock": 7,
+        "precio": 32,
+        "createdAt": "2025-12-13T17:12:39.969Z"
+      }
+    ],
+    [
+      "BOOK#978-0201633610||META#",
+      {
+        "pk": "BOOK#978-0201633610",
+        "sk": "META#",
+        "isbn": "978-0201633610",
+        "titulo": "Design Patterns",
+        "autores": "Erich Gamma, Richard Helm, Ralph Johnson, John Vlissides",
+        "resumen": "Patrones de diseño de software clásicos",
+        "stock": 4,
+        "precio": 50,
+        "createdAt": "2025-12-13T17:12:39.969Z"
+      }
+    ],
+    [
+      "BOOK#978-0262033848||META#",
+      {
+        "pk": "BOOK#978-0262033848",
+        "sk": "META#",
+        "isbn": "978-0262033848",
+        "titulo": "Introduction to Algorithms",
+        "autores": "Thomas H. Cormen, Charles E. Leiserson, Ronald L. Rivest, Clifford Stein",
+        "resumen": "Referente en algoritmos y estructuras de datos",
+        "stock": 3,
+        "precio": 65,
+        "createdAt": "2025-12-13T17:12:39.969Z"
+      }
+    ],
+    [
+      "BOOK#978-0596007126||META#",
+      {
+        "pk": "BOOK#978-0596007126",
+        "sk": "META#",
+        "isbn": "978-0596007126",
+        "titulo": "Head First Design Patterns",
+        "autores": "Eric Freeman, Elisabeth Robson",
+        "resumen": "Patrones explicados de forma visual y práctica",
+        "stock": 8,
+        "precio": 42,
+        "createdAt": "2025-12-13T17:12:39.969Z"
+      }
+    ],
+    [
+      "BOOK#978-0307474278||META#",
+      {
+        "pk": "BOOK#978-0307474278",
+        "sk": "META#",
+        "isbn": "978-0307474278",
+        "titulo": "Sapiens: A Brief History of Humankind",
+        "autores": "Yuval Noah Harari",
+        "resumen": "Historia de la humanidad de forma divulgativa",
+        "stock": 5,
+        "precio": 28,
+        "createdAt": "2025-12-13T17:12:39.969Z"
+      }
+    ],
+    [
+      "BOOK#978-0140449136||META#",
+      {
+        "pk": "BOOK#978-0140449136",
+        "sk": "META#",
+        "isbn": "978-0140449136",
+        "titulo": "The Odyssey",
+        "autores": "Homer",
+        "resumen": "Epopeya clásica de la literatura griega",
+        "stock": 2,
+        "precio": 18,
+        "createdAt": "2025-12-13T17:12:39.969Z"
+      }
+    ],
+    [
+      "BOOK#978-1111111111||META#",
+      {
+        "pk": "BOOK#978-1111111111",
+        "sk": "META#",
+        "isbn": "978-1111111111",
+        "titulo": "Libro de Prueba Curl",
+        "autores": "ChatGPT",
+        "resumen": "Insertado desde curl",
+        "stock": 10,
+        "precio": 24.5,
+        "createdAt": "2025-12-13T17:28:47.730Z"
+      }
+    ]
+  ],
+  "Users": [
+    [
+      "EMAIL#admin@demo.com||USER#28a0785c-78bb-41d5-8180-d01d1b01ca28",
+      {
+        "pk": "EMAIL#admin@demo.com",
+        "sk": "USER#28a0785c-78bb-41d5-8180-d01d1b01ca28",
+        "userId": "28a0785c-78bb-41d5-8180-d01d1b01ca28",
+        "email": "admin@demo.com",
+        "rol": "admin"
+      }
+    ],
+    [
+      "DNI#1-9||USER#28a0785c-78bb-41d5-8180-d01d1b01ca28",
+      {
+        "pk": "DNI#1-9",
+        "sk": "USER#28a0785c-78bb-41d5-8180-d01d1b01ca28",
+        "userId": "28a0785c-78bb-41d5-8180-d01d1b01ca28",
+        "dni": "1-9"
+      }
+    ],
+    [
+      "USER#28a0785c-78bb-41d5-8180-d01d1b01ca28||PROFILE#",
+      {
+        "pk": "USER#28a0785c-78bb-41d5-8180-d01d1b01ca28",
+        "sk": "PROFILE#",
+        "userId": "28a0785c-78bb-41d5-8180-d01d1b01ca28",
+        "dni": "1-9",
+        "nombres": "Sebastian",
+        "apellidos": "Muñoz",
+        "direccion": "C/ Algoritmo 101",
+        "telefono": "+34 600 000 001",
+        "email": "admin@demo.com",
+        "rol": "admin",
+        "passwordHash": "$2b$10$mIxKx1UQGfcm1zosNZHepOQzQbrFgv3KpycwSW0A/PBNDG.kPjqFO",
+        "createdAt": "2025-12-13T17:12:40.017Z",
+        "updatedAt": "2025-12-13T17:12:40.017Z"
+      }
+    ],
+    [
+      "EMAIL#cliente@demo.com||USER#d9f7c7bd-2a12-493b-b3f0-cd09f9093814",
+      {
+        "pk": "EMAIL#cliente@demo.com",
+        "sk": "USER#d9f7c7bd-2a12-493b-b3f0-cd09f9093814",
+        "userId": "d9f7c7bd-2a12-493b-b3f0-cd09f9093814",
+        "email": "cliente@demo.com",
+        "rol": "cliente"
+      }
+    ],
+    [
+      "DNI#2-7||USER#d9f7c7bd-2a12-493b-b3f0-cd09f9093814",
+      {
+        "pk": "DNI#2-7",
+        "sk": "USER#d9f7c7bd-2a12-493b-b3f0-cd09f9093814",
+        "userId": "d9f7c7bd-2a12-493b-b3f0-cd09f9093814",
+        "dni": "2-7"
+      }
+    ],
+    [
+      "USER#d9f7c7bd-2a12-493b-b3f0-cd09f9093814||PROFILE#",
+      {
+        "pk": "USER#d9f7c7bd-2a12-493b-b3f0-cd09f9093814",
+        "sk": "PROFILE#",
+        "userId": "d9f7c7bd-2a12-493b-b3f0-cd09f9093814",
+        "dni": "2-7",
+        "nombres": "David",
+        "apellidos": "Vega",
+        "direccion": "Av. Libro 202",
+        "telefono": "+34 600 000 002",
+        "email": "cliente@demo.com",
+        "rol": "cliente",
+        "passwordHash": "$2b$10$3AwM4MXP88BGEX3X5Txc8OQ1EqpjRYXrqk9Yhifv2B5doeM0pYR7y",
+        "createdAt": "2025-12-13T17:12:40.062Z",
+        "updatedAt": "2025-12-13T17:12:40.062Z"
+      }
+    ],
+    [
+      "EMAIL#1||USER#d3061cbb-77ee-4c49-91e3-e317040db3e5",
+      {
+        "pk": "EMAIL#1",
+        "sk": "USER#d3061cbb-77ee-4c49-91e3-e317040db3e5",
+        "userId": "d3061cbb-77ee-4c49-91e3-e317040db3e5",
+        "email": "1",
+        "rol": "cliente"
+      }
+    ],
+    [
+      "USER#d3061cbb-77ee-4c49-91e3-e317040db3e5||PROFILE#",
+      {
+        "pk": "USER#d3061cbb-77ee-4c49-91e3-e317040db3e5",
+        "sk": "PROFILE#",
+        "userId": "d3061cbb-77ee-4c49-91e3-e317040db3e5",
+        "dni": "123123",
+        "nombres": "sebas",
+        "apellidos": "1",
+        "direccion": "1",
+        "telefono": "1",
+        "email": "1",
+        "rol": "cliente",
+        "passwordHash": "$2b$10$2ktjcZdRIiQY0qeNmG1nMuuIwfTSu2M7MnIGJS0orzrjVHD141kB6",
+        "createdAt": "2025-12-13T19:49:03.087Z",
+        "updatedAt": "2025-12-13T21:40:38.598Z"
+      }
+    ],
+    [
+      "DNI#123123||USER#d3061cbb-77ee-4c49-91e3-e317040db3e5",
+      {
+        "pk": "DNI#123123",
+        "sk": "USER#d3061cbb-77ee-4c49-91e3-e317040db3e5",
+        "userId": "d3061cbb-77ee-4c49-91e3-e317040db3e5",
+        "dni": "123123"
+      }
+    ],
+    [
+      "EMAIL#2||USER#b361b1c0-281b-4518-a5ec-8e364511e20c",
+      {
+        "pk": "EMAIL#2",
+        "sk": "USER#b361b1c0-281b-4518-a5ec-8e364511e20c",
+        "userId": "b361b1c0-281b-4518-a5ec-8e364511e20c",
+        "email": "2",
+        "rol": "admin"
+      }
+    ],
+    [
+      "USER#b361b1c0-281b-4518-a5ec-8e364511e20c||PROFILE#",
+      {
+        "pk": "USER#b361b1c0-281b-4518-a5ec-8e364511e20c",
+        "sk": "PROFILE#",
+        "userId": "b361b1c0-281b-4518-a5ec-8e364511e20c",
+        "dni": "123123",
+        "nombres": "46",
+        "apellidos": "34636",
+        "direccion": "asdasdasd",
+        "telefono": "123",
+        "email": "2",
+        "rol": "admin",
+        "passwordHash": "$2b$10$Y.WaaRSJBkHL3.wNoBNy.OIemDuAWXFGU8kHd4XnfRay8vDd5njAi",
+        "createdAt": "2025-12-13T21:43:06.197Z",
+        "updatedAt": "2025-12-13T21:48:15.106Z"
+      }
+    ],
+    [
+      "DNI#123123||USER#b361b1c0-281b-4518-a5ec-8e364511e20c",
+      {
+        "pk": "DNI#123123",
+        "sk": "USER#b361b1c0-281b-4518-a5ec-8e364511e20c",
+        "userId": "b361b1c0-281b-4518-a5ec-8e364511e20c",
+        "dni": "123123"
+      }
+    ]
+  ],
+  "Carts": [
+    [
+      "CART#USER#d9f7c7bd-2a12-493b-b3f0-cd09f9093814||META#",
+      {
+        "pk": "CART#USER#d9f7c7bd-2a12-493b-b3f0-cd09f9093814",
+        "sk": "META#",
+        "ivaRate": 0.04,
+        "createdAt": "2025-12-13T17:29:35.418Z"
+      }
+    ],
+    [
+      "CART#USER#d3061cbb-77ee-4c49-91e3-e317040db3e5||META#",
+      {
+        "pk": "CART#USER#d3061cbb-77ee-4c49-91e3-e317040db3e5",
+        "sk": "META#",
+        "ivaRate": 0.04,
+        "createdAt": "2025-12-13T20:00:18.662Z"
+      }
+    ]
+  ],
+  "Orders": [
+    [
+      "ORDER#USER#d9f7c7bd-2a12-493b-b3f0-cd09f9093814||ORDER#d2bba88b-a671-446e-8448-ea0d9992f14e",
+      {
+        "pk": "ORDER#USER#d9f7c7bd-2a12-493b-b3f0-cd09f9093814",
+        "sk": "ORDER#d2bba88b-a671-446e-8448-ea0d9992f14e",
+        "orderId": "d2bba88b-a671-446e-8448-ea0d9992f14e",
+        "usuarioId": "d9f7c7bd-2a12-493b-b3f0-cd09f9093814",
+        "fechaISO": "2025-12-13T17:29:44.904Z",
+        "subtotal": 73.5,
+        "iva": 2.94,
+        "total": 76.44,
+        "ivaRate": 0.04,
+        "meta": {
+          "razonSocial": "Cliente Demo SPA",
+          "direccion": "Calle Falsa 123",
+          "dni": "2-7",
+          "email": "cliente@demo.com"
+        },
+        "createdAt": "2025-12-13T17:29:44.904Z"
+      }
+    ],
+    [
+      "ORDER#USER#d9f7c7bd-2a12-493b-b3f0-cd09f9093814||ORDER#d2bba88b-a671-446e-8448-ea0d9992f14e#ITEM#978-1111111111",
+      {
+        "pk": "ORDER#USER#d9f7c7bd-2a12-493b-b3f0-cd09f9093814",
+        "sk": "ORDER#d2bba88b-a671-446e-8448-ea0d9992f14e#ITEM#978-1111111111",
+        "orderId": "d2bba88b-a671-446e-8448-ea0d9992f14e",
+        "usuarioId": "d9f7c7bd-2a12-493b-b3f0-cd09f9093814",
+        "libroId": "978-1111111111",
+        "titulo": "Libro de Prueba Curl",
+        "precio": 24.5,
+        "cantidad": 3,
+        "subtotal": 73.5,
+        "createdAt": "2025-12-13T17:29:44.904Z"
+      }
+    ],
+    [
+      "ORDER#USER#d3061cbb-77ee-4c49-91e3-e317040db3e5||ORDER#271b1f57-27de-41b9-bb55-196c75a4c64d",
+      {
+        "pk": "ORDER#USER#d3061cbb-77ee-4c49-91e3-e317040db3e5",
+        "sk": "ORDER#271b1f57-27de-41b9-bb55-196c75a4c64d",
+        "orderId": "271b1f57-27de-41b9-bb55-196c75a4c64d",
+        "usuarioId": "d3061cbb-77ee-4c49-91e3-e317040db3e5",
+        "fechaISO": "2025-12-13T20:00:43.629Z",
+        "subtotal": 45,
+        "iva": 1.8,
+        "total": 46.8,
+        "ivaRate": 0.04,
+        "meta": {
+          "razonSocial": "1 1",
+          "direccion": "1",
+          "dni": "1",
+          "email": "1"
+        },
+        "createdAt": "2025-12-13T20:00:43.629Z"
+      }
+    ],
+    [
+      "ORDER#USER#d3061cbb-77ee-4c49-91e3-e317040db3e5||ORDER#271b1f57-27de-41b9-bb55-196c75a4c64d#ITEM#978-0131103627",
+      {
+        "pk": "ORDER#USER#d3061cbb-77ee-4c49-91e3-e317040db3e5",
+        "sk": "ORDER#271b1f57-27de-41b9-bb55-196c75a4c64d#ITEM#978-0131103627",
+        "orderId": "271b1f57-27de-41b9-bb55-196c75a4c64d",
+        "usuarioId": "d3061cbb-77ee-4c49-91e3-e317040db3e5",
+        "libroId": "978-0131103627",
+        "titulo": "The C Programming Language",
+        "precio": 45,
+        "cantidad": 1,
+        "subtotal": 45,
+        "createdAt": "2025-12-13T20:00:43.629Z"
+      }
+    ],
+    [
+      "ORDER#USER#d3061cbb-77ee-4c49-91e3-e317040db3e5||ORDER#68d7e64d-6ffd-4fdd-875e-f7c60296b45b",
+      {
+        "pk": "ORDER#USER#d3061cbb-77ee-4c49-91e3-e317040db3e5",
+        "sk": "ORDER#68d7e64d-6ffd-4fdd-875e-f7c60296b45b",
+        "orderId": "68d7e64d-6ffd-4fdd-875e-f7c60296b45b",
+        "usuarioId": "d3061cbb-77ee-4c49-91e3-e317040db3e5",
+        "fechaISO": "2025-12-13T21:41:15.839Z",
+        "subtotal": 195,
+        "iva": 7.8,
+        "total": 202.8,
+        "ivaRate": 0.04,
+        "meta": {
+          "razonSocial": "sebas 1",
+          "direccion": "xdd",
+          "dni": "123123",
+          "email": "1"
+        },
+        "createdAt": "2025-12-13T21:41:15.839Z"
+      }
+    ],
+    [
+      "ORDER#USER#d3061cbb-77ee-4c49-91e3-e317040db3e5||ORDER#68d7e64d-6ffd-4fdd-875e-f7c60296b45b#ITEM#978-0262033848",
+      {
+        "pk": "ORDER#USER#d3061cbb-77ee-4c49-91e3-e317040db3e5",
+        "sk": "ORDER#68d7e64d-6ffd-4fdd-875e-f7c60296b45b#ITEM#978-0262033848",
+        "orderId": "68d7e64d-6ffd-4fdd-875e-f7c60296b45b",
+        "usuarioId": "d3061cbb-77ee-4c49-91e3-e317040db3e5",
+        "libroId": "978-0262033848",
+        "titulo": "Introduction to Algorithms",
+        "precio": 65,
+        "cantidad": 3,
+        "subtotal": 195,
+        "createdAt": "2025-12-13T21:41:15.839Z"
+      }
+    ]
+  ]
+}

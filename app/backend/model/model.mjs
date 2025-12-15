@@ -42,6 +42,15 @@ export const model = {
     updateUser(id, patch) {
       return userService.updateUser(id, patch);
     },
+    getByRole(rol) {
+      return userService.getByRole(rol);
+    },
+    removeByRole(rol) {
+      return userService.removeByRole(rol);
+    },
+    removeByIdAndRole(id, rol) {
+      return userService.removeByIdAndRole(id, rol);
+    },
   },
 
   // ----------------- Libros -----------------
@@ -64,6 +73,12 @@ export const model = {
 
     removeLibro(id) {
       return libroService.removeLibro(id);
+    },
+    removeAll() {
+      return libroService.removeAll();
+    },
+    replaceAll(arr) {
+      return libroService.replaceAll(arr);
     },
   },
 
@@ -110,6 +125,15 @@ export const model = {
 
     getById(userId, orderId) {
       return facturaService.getById(userId, orderId);
+    },
+    getAllGlobal() {
+      return facturaService.getAllGlobal();
+    },
+    removeAllGlobal() {
+      return facturaService.removeAllGlobal();
+    },
+    getByIdGlobal(orderId) {
+      return facturaService.getByIdGlobal(orderId);
     },
   },
 };

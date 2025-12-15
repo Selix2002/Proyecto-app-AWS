@@ -149,6 +149,7 @@ export class LibreriaProxy {
     }
 
     async getLibroPorId(id) {
+        console.log("Proxy: obteniendo libro por id:", id);
         let response = await fetch(`${BASE_URL}/libros/${id}`);
         if (response.ok) {
             return await response.json();
@@ -509,9 +510,10 @@ export class LibreriaProxy {
     }
 
     async getFacturasPorCliente(idCliente) {
-        const url = new URL(`${BASE_URL}/facturas`);
-        url.searchParams.set('cliente', idCliente);
-        let response = await fetch(url.toString());
+        const url = new URL(`${BASE_URL}/facturas`, window.location.origin);
+        url.searchParams.set("cliente", idCliente);
+        const response = await fetch(url);
+
         if (response.ok) {
             return await response.json();
         } else {

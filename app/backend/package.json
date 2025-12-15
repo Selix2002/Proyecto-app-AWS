@@ -10,6 +10,8 @@
     "test-server": "NODE_ENV=test node server.mjs"
   },
   "dependencies": {
+    "@aws-sdk/client-dynamodb": "^3.948.0",
+    "@aws-sdk/lib-dynamodb": "^3.948.0",
     "bcrypt": "^6.0.0",
     "cors": "^2.8.5",
     "dotenv": "^17.2.3",

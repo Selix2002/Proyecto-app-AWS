@@ -49,12 +49,12 @@ export class AdminModificarLibroPresenter extends Presenter {
       const cancelBtn = this.parentElement.querySelector("#cancelEdit");
       if (cancelBtn) {
         cancelBtn.addEventListener("click", () => {
-          router.navigate(`/libreria/admin-ver-libro.html?id=${encodeURIComponent(libro._id)}`);
+          router.navigate(`/libreria/admin-ver-libro.html?id=${encodeURIComponent(libro.id)}`);
         });
       }
 
       // Manejo del submit del formulario
-      this.form.addEventListener("submit", (e) => this.onSubmit(e, libro._id));
+      this.form.addEventListener("submit", (e) => this.onSubmit(e, libro.id));
     } catch (err) {
       console.error(err);
       mostrarModal("Error al cargar el libro.", "error");
@@ -88,7 +88,7 @@ export class AdminModificarLibroPresenter extends Presenter {
         stock,
         precio
       };
-
+      console.log("Actualizando libro con datos:", patch);
       await this.model.updateLibro(id, patch);
 
       LibreriaSession.pushMessage("Libro actualizado correctamente.", "ok");

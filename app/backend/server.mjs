@@ -1,15 +1,14 @@
-import { connectDB } from "./src/db.mjs";
-//import { seed } from "./src/seeder.mjs";
+import {db} from "./model/db/db.mjs";
 import { app } from "./src/app.mjs";
-//import { resetDatabase } from "./src/resetDB.mjs";
+import {seed} from "./src/seeder.mjs";
 
 const PORT = process.env.PORT;
 
+//db.createTable("Books");
+//db.createTable("Users");
+//db.createTable("Carts");
+//db.createTable("Orders");   
 
-
-await connectDB();
-
-//await resetDatabase();
 
 //await seed();
 

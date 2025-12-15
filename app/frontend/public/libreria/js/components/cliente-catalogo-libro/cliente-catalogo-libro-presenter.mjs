@@ -14,12 +14,12 @@ export class ClienteCatalogoLibroPresenter extends Presenter {
 
     for (const l of libros) {
       grid.insertAdjacentHTML('beforeend', `
-        <article class="card" data-id="${l._id}"> 
+        <article class="card" data-id="${l.id}"> 
           <div class="card-cover"></div>
           <h3 class="card-title">${l.titulo}</h3>
           <p class="card-author">${l.autores}</p>
           <p class="card-price">€ ${l.precio}</p>
-          <a class="card-link" href="cliente-ver-libro.html?id=${l._id}">Ver</a>
+          <a class="card-link" href="cliente-ver-libro.html?id=${l.id}">Ver</a>
         </article>
       `);
     }

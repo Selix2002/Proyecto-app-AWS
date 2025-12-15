@@ -50,16 +50,16 @@ export class AdminVerLibroPresenter extends Presenter {
           try {
             mostrarModal(`Libro "${libro.titulo}" borrado correctamente.`, 'ok');
 
-            await this.model.removeLibro(libro._id);
+            await this.model.removeLibro(libro.id);
             
             // Borrar el libro de todos los carritos de los usuarios
             const users = await this.model.getClientes();  // Obtener todos los usuarios
             for (const user of users) {
               try {
                 const cart = await this.model.getCarroCliente(user.id); // Obtener carrito del usuario
-                const libroIndex = cart.items.findIndex(item => item.libroId === String(libro._id));
+                const libroIndex = cart.items.findIndex(item => item.libroId === String(libro.id));
                 if (libroIndex !== -1) {
-                  await this.model.carts.removeClienteCarroItem(user.id, String(libro._id));
+                  await this.model.carts.removeClienteCarroItem(user.id, String(libro.id));
                 }
               } catch (err) {
                 console.error(`Error al borrar el libro del carrito del usuario ${user.id}:`, err);
@@ -78,7 +78,7 @@ export class AdminVerLibroPresenter extends Presenter {
       const btnEdit = this.parentElement.querySelector("#editBook");
       if (btnEdit) {
         btnEdit.addEventListener("click", () => {
-          router.navigate(`/libreria/admin-modificar-libro.html?id=${encodeURIComponent(libro._id)}`);
+          router.navigate(`/libreria/admin-modificar-libro.html?id=${encodeURIComponent(libro.id)}`);
         });
       }
     } catch (err) {
