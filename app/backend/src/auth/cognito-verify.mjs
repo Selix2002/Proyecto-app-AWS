@@ -8,6 +8,7 @@ const USER_POOL_ID = process.env.COGNITO_USER_POOL_ID;
 const CLIENT_ID = process.env.COGNITO_CLIENT_ID;
 
 if (!REGION || !USER_POOL_ID || !CLIENT_ID) {
+    console.log("Missing Cognito envs:", { REGION, USER_POOL_ID, CLIENT_ID });
     throw new Error("Faltan envs Cognito: COGNITO_REGION, COGNITO_USER_POOL_ID, COGNITO_CLIENT_ID");
 }
 

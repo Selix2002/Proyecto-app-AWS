@@ -298,6 +298,42 @@
         "createdAt": "2025-12-18T00:00:32.017Z",
         "updatedAt": "2025-12-18T00:00:32.017Z"
       }
+    ],
+    [
+      "EMAIL#sebas+test@correo.com||USER#d4181418-20e1-70ee-2e59-f7a61b5b968e",
+      {
+        "pk": "EMAIL#sebas+test@correo.com",
+        "sk": "USER#d4181418-20e1-70ee-2e59-f7a61b5b968e",
+        "userId": "d4181418-20e1-70ee-2e59-f7a61b5b968e",
+        "email": "sebas+test@correo.com"
+      }
+    ],
+    [
+      "DNI#123||USER#d4181418-20e1-70ee-2e59-f7a61b5b968e",
+      {
+        "pk": "DNI#123",
+        "sk": "USER#d4181418-20e1-70ee-2e59-f7a61b5b968e",
+        "userId": "d4181418-20e1-70ee-2e59-f7a61b5b968e",
+        "dni": "123"
+      }
+    ],
+    [
+      "USER#d4181418-20e1-70ee-2e59-f7a61b5b968e||PROFILE#",
+      {
+        "pk": "USER#d4181418-20e1-70ee-2e59-f7a61b5b968e",
+        "sk": "PROFILE#",
+        "userId": "d4181418-20e1-70ee-2e59-f7a61b5b968e",
+        "dni": "123",
+        "nombres": "Sebas",
+        "apellidos": "Muñoz",
+        "direccion": "X",
+        "telefono": "123",
+        "email": "sebas+test@correo.com",
+        "rol": "cliente",
+        "status": "PENDING_CONFIRMATION",
+        "createdAt": "2025-12-18T00:34:33.925Z",
+        "updatedAt": "2025-12-18T00:34:33.925Z"
+      }
     ]
   ],
   "Carts": [

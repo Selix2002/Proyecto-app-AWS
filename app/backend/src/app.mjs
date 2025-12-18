@@ -2,11 +2,11 @@
 import express from "express";
 import path from "path";
 import url from "url";
-import passport from "passport";
-import { Strategy as JWTStrategy, ExtractJwt as ExtractJWT } from "passport-jwt";
-import jwt from "jsonwebtoken";
 import dotenv from "dotenv";
 import cors from "cors";
+import { cognitoAuthenticate } from "./auth/cognito-login.mjs"; // ajusta ruta
+import { requireAuth, requireGroup } from "./auth/cognito-verify.mjs"; // ajusta ruta
+import { cognitoSignUp } from "./auth/cognito-signup.mjs";
 
 dotenv.config();
 
@@ -38,34 +38,20 @@ app.options("*", cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// ================== JWT / PASSPORT ==================
-const SECRET_KEY = process.env.JWT_SECRET || "supersecretkey";
 
-passport.use(
-  new JWTStrategy(
-    {
-      jwtFromRequest: ExtractJWT.fromAuthHeaderAsBearerToken(),
-      secretOrKey: SECRET_KEY,
-    },
-    async (jwtPayload, done) => {
-      try {
-        const user = await model.users.getById(jwtPayload.id);
-        if (!user) return done(null, false);
-        return done(null, user);
-      } catch (err) {
-        return done(err, false);
-      }
-    }
-  )
-);
-
-app.use(passport.initialize());
-
-const requireAuth = passport.authenticate("jwt", { session: false });
 
 
 
 // ================== HELPERS ==================
+function getGroupsFromClaims(req) {
+  const g = req.user?.["cognito:groups"];
+  return Array.isArray(g) ? g : [];
+}
+
+function isAdmin(req) {
+  return getGroupsFromClaims(req).includes("admin");
+}
+
 function safeUser(u) {
   return u ?? null;
 }
@@ -327,18 +313,6 @@ app.delete("/api/clientes/:id", async (req, res) => {
   }
 });
 
-// POST /api/clientes/autenticar
-app.post("/api/clientes/autenticar", async (req, res) => {
-  try {
-    const { email, password } = req.body;
-    const u = await model.users.validate(email, password, "cliente");
-    if (!u) return res.status(401).json({ error: "Credenciales inválidas" });
-    res.json(safeUser(u));
-  } catch (err) {
-    console.error(err);
-    res.status(401).json({ error: err.message ?? "Error en autenticación" });
-  }
-});
 
 // ================== ADMINISTRADORES ==================
 
@@ -445,45 +419,69 @@ app.delete("/api/admins", async (req, res) => {
 app.post("/api/admins/autenticar", async (req, res) => {
   try {
     const { email, password } = req.body;
-    const u = await model.users.validate(email, password, "admin");
-    if (!u) return res.status(401).json({ error: "Credenciales inválidas" });
-    res.json(safeUser(u));
+    const tokens = await cognitoAuthenticate(email, password);
+    return res.status(200).json(tokens);
   } catch (err) {
     console.error(err);
-    res.status(401).json({ error: err.message ?? "Error en autenticación" });
+    return res.status(401).json({ error: err.message ?? "Credenciales inválidas" });
   }
 });
 
 // ================== USUARIOS ==================
 
 app.post("/api/usuarios", async (req, res) => {
+  const data = { ...req.body };
+
   try {
-    const data = { ...req.body };
-    const user = await model.users.addUser(data);
-    res.status(201).json(safeUser(user));
+    // 1) Validaciones mínimas (no guardes password en logs)
+    //    OJO: rol desde el front OK para pruebas, pero valida allowlist.
+    const rol = (data.rol ?? "cliente").toLowerCase();
+    if (!["cliente", "admin"].includes(rol)) {
+      return res.status(400).json({ message: "Rol inválido" });
+    }
+
+    // 2) Cognito: crea usuario (email/password)
+    const { sub, userConfirmed } = await cognitoSignUp({
+      email: data.email,
+      password: data.password,
+      groupName: rol,
+    });
+
+    // 3) DynamoDB: crea perfil (sin password)
+    const profile = await model.users.addUser({
+      userId: sub,                  // <- ID real del usuario (Cognito sub)
+      dni: data.dni,
+      nombres: data.nombres,
+      apellidos: data.apellidos,
+      direccion: data.direccion,
+      telefono: data.telefono,
+      email: data.email,
+      rol,                          // opcional (NO autoritativo)
+      status: userConfirmed ? "ACTIVE" : "PENDING_CONFIRMATION",
+    });
+
+    return res.status(201).json({
+      ...profile,
+      userConfirmed,
+    });
   } catch (err) {
     console.error(err);
-    res.status(400).json({ message: err.message ?? "Error al crear usuario" });
+
+    // Si Cognito alcanzó a crear y DynamoDB falló, borra Cognito (si tienes info)
+    // (Lo más seguro es borrar SOLO si sabes que el fallo ocurrió después de crear.)
+    // Puedes hacerlo dentro del try/catch interno (ver más abajo en addUserProfile).
+    return res.status(400).json({ message: err.message ?? "Error al crear usuario" });
   }
 });
 
 app.post("/api/autenticar", async (req, res) => {
   try {
-    const { email, password, rol } = req.body;
-
-    const user = await model.users.validate(email, password, rol);
-    if (!user) {
-      return res.status(400).json({ message: "Credenciales inválidas" });
-    }
-
-    const accessToken = jwt.sign({ id: user.id, rol: user.rol }, SECRET_KEY, {
-      expiresIn: "1000s",
-    });
-
-    return res.status(200).json({ token: accessToken });
+    const { email, password } = req.body;
+    const tokens = await cognitoAuthenticate(email, password);
+    return res.status(200).json(tokens);
   } catch (err) {
     console.error(err);
-    res.status(500).json({ message: err.message ?? "Error en autenticación" });
+    return res.status(401).json({ error: err.message ?? "Credenciales inválidas" });
   }
 });
 
@@ -503,7 +501,11 @@ app.get("/api/usuarios/:id", requireAuth, async (req, res) => {
   if (!id) return res.status(400).json({ message: "Id no definido" });
 
   try {
-    if (req.user.rol !== "admin" && String(req.user.id) !== String(id)) {
+    const admin = isAdmin(req);
+    const isSelf = String(req.user.sub) === String(id);
+
+    // Si no es admin y pide otro id distinto al suyo: 403
+    if (!admin && !isSelf) {
       return res.status(403).json({ message: "Acceso no autorizado" });
     }
 
@@ -517,9 +519,10 @@ app.get("/api/usuarios/:id", requireAuth, async (req, res) => {
   }
 });
 
+
 app.put("/api/usuarios/:id", requireAuth, async (req, res) => {
   try {
-    const userId = String(req.user.id);
+    const userId = String(req.user.sub); // ✅ antes: req.user.id
     const actualizado = await model.users.updateUser(userId, req.body);
     res.json(actualizado);
   } catch (err) {
@@ -531,6 +534,7 @@ app.put("/api/usuarios/:id", requireAuth, async (req, res) => {
     }
   }
 });
+
 
 // ================== CARRO DE COMPRA (CLIENTE) ==================
 
