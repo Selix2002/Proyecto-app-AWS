@@ -16,12 +16,30 @@ const STATIC_DIR = url.fileURLToPath(new URL(".", import.meta.url));
 
 export const app = express();
 
-app.use("/", express.static(path.join(STATIC_DIR, "public")));
+// ================== CORS ==================
+const allowed = (process.env.CORS_ORIGINS ?? "http://localhost:5173")
+  .split(",")
+  .map(s => s.trim())
+  .filter(Boolean);
+  
+app.use(cors({
+  origin: (origin, cb) => {
+    if (!origin) return cb(null, true); // curl/postman
+    return allowed.includes(origin) ? cb(null, true) : cb(new Error("CORS blocked"));
+  },
+  credentials: true,
+  allowedHeaders: ["Content-Type", "Authorization"],
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+}));
+
+app.options("*", cors());
+// ================== MIDDLEWARES ==================
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // ================== JWT / PASSPORT ==================
-const SECRET_KEY = process.env.JWT_SECRET;
+const SECRET_KEY = process.env.JWT_SECRET || "supersecretkey";
 
 passport.use(
   new JWTStrategy(
@@ -44,6 +62,8 @@ passport.use(
 app.use(passport.initialize());
 
 const requireAuth = passport.authenticate("jwt", { session: false });
+
+
 
 // ================== HELPERS ==================
 function safeUser(u) {
@@ -687,16 +707,14 @@ app.post("/api/facturas", async (req, res) => {
 
 // ================== AJUSTES SPA + 404 ==================
 
-app.use(
-  cors({
-    origin: "http://localhost:5173",
-    credentials: true,
-  })
-);
 
-app.use("/libreria*", (req, res) => {
-  res.sendFile(path.join(STATIC_DIR, "public/libreria/index.html"));
-});
+if (process.env.SERVE_STATIC === "1") {
+  app.use("/", express.static(path.join(STATIC_DIR, "public")));
+  app.use("/libreria*", (req, res) => {
+    res.sendFile(path.join(STATIC_DIR, "public/libreria/index.html"));
+  });
+}
+
 
 app.all("*", (req, res) => {
   console.error(`${req.originalUrl} not found!`);

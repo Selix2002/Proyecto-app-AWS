@@ -261,6 +261,43 @@
         "userId": "b361b1c0-281b-4518-a5ec-8e364511e20c",
         "dni": "123123"
       }
+    ],
+    [
+      "EMAIL#sebas||USER#2dbb99fc-d93b-47f2-a740-487a36e4b279",
+      {
+        "pk": "EMAIL#sebas",
+        "sk": "USER#2dbb99fc-d93b-47f2-a740-487a36e4b279",
+        "userId": "2dbb99fc-d93b-47f2-a740-487a36e4b279",
+        "email": "sebas",
+        "rol": "cliente"
+      }
+    ],
+    [
+      "DNI#123||USER#2dbb99fc-d93b-47f2-a740-487a36e4b279",
+      {
+        "pk": "DNI#123",
+        "sk": "USER#2dbb99fc-d93b-47f2-a740-487a36e4b279",
+        "userId": "2dbb99fc-d93b-47f2-a740-487a36e4b279",
+        "dni": "123"
+      }
+    ],
+    [
+      "USER#2dbb99fc-d93b-47f2-a740-487a36e4b279||PROFILE#",
+      {
+        "pk": "USER#2dbb99fc-d93b-47f2-a740-487a36e4b279",
+        "sk": "PROFILE#",
+        "userId": "2dbb99fc-d93b-47f2-a740-487a36e4b279",
+        "dni": "123",
+        "nombres": "123",
+        "apellidos": "123",
+        "direccion": "123",
+        "telefono": "123",
+        "email": "sebas",
+        "rol": "cliente",
+        "passwordHash": "$2b$10$pD5vOCA231AYhP4LJdxiouWcTmAnHx.EwRf2Y3RyxoToG3d/WozV2",
+        "createdAt": "2025-12-18T00:00:32.017Z",
+        "updatedAt": "2025-12-18T00:00:32.017Z"
+      }
     ]
   ],
   "Carts": [
