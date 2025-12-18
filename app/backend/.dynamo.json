@@ -8,8 +8,8 @@
         "isbn": "978-0131103627",
         "titulo": "The C Programming Language",
         "autores": "Brian W. Kernighan, Dennis M. Ritchie",
-        "resumen": "Clásico fundamental del lenguaje C",
-        "stock": 4,
+        "resumen": "qwoiengengoians",
+        "stock": 1,
         "precio": 45,
         "createdAt": "2025-12-13T17:12:39.968Z"
       }
@@ -110,6 +110,20 @@
         "stock": 10,
         "precio": 24.5,
         "createdAt": "2025-12-13T17:28:47.730Z"
+      }
+    ],
+    [
+      "BOOK#123123123123123123||META#",
+      {
+        "pk": "BOOK#123123123123123123",
+        "sk": "META#",
+        "isbn": "123123123123123123",
+        "titulo": "elaemeremix",
+        "autores": "yomismo",
+        "resumen": "nose",
+        "stock": 11,
+        "precio": 111,
+        "createdAt": "2025-12-18T13:43:33.192Z"
       }
     ]
   ],
@@ -334,6 +348,152 @@
         "createdAt": "2025-12-18T00:34:33.925Z",
         "updatedAt": "2025-12-18T00:34:33.925Z"
       }
+    ],
+    [
+      "EMAIL#sebas+test@correo.com||USER#842814e8-80e1-708f-0dba-5622d3c7a8e1",
+      {
+        "pk": "EMAIL#sebas+test@correo.com",
+        "sk": "USER#842814e8-80e1-708f-0dba-5622d3c7a8e1",
+        "userId": "842814e8-80e1-708f-0dba-5622d3c7a8e1",
+        "email": "sebas+test@correo.com"
+      }
+    ],
+    [
+      "DNI#123||USER#842814e8-80e1-708f-0dba-5622d3c7a8e1",
+      {
+        "pk": "DNI#123",
+        "sk": "USER#842814e8-80e1-708f-0dba-5622d3c7a8e1",
+        "userId": "842814e8-80e1-708f-0dba-5622d3c7a8e1",
+        "dni": "123"
+      }
+    ],
+    [
+      "USER#842814e8-80e1-708f-0dba-5622d3c7a8e1||PROFILE#",
+      {
+        "pk": "USER#842814e8-80e1-708f-0dba-5622d3c7a8e1",
+        "sk": "PROFILE#",
+        "userId": "842814e8-80e1-708f-0dba-5622d3c7a8e1",
+        "dni": "123",
+        "nombres": "Sebas",
+        "apellidos": "Muñoz",
+        "direccion": "X",
+        "telefono": "123",
+        "email": "sebas+test@correo.com",
+        "rol": "cliente",
+        "status": "PENDING_CONFIRMATION",
+        "createdAt": "2025-12-18T00:48:30.445Z",
+        "updatedAt": "2025-12-18T00:48:30.445Z"
+      }
+    ],
+    [
+      "EMAIL#sebas+test@correo.com||USER#84d86418-9081-706a-044b-7d5a923096f2",
+      {
+        "pk": "EMAIL#sebas+test@correo.com",
+        "sk": "USER#84d86418-9081-706a-044b-7d5a923096f2",
+        "userId": "84d86418-9081-706a-044b-7d5a923096f2",
+        "email": "sebas+test@correo.com"
+      }
+    ],
+    [
+      "DNI#123||USER#84d86418-9081-706a-044b-7d5a923096f2",
+      {
+        "pk": "DNI#123",
+        "sk": "USER#84d86418-9081-706a-044b-7d5a923096f2",
+        "userId": "84d86418-9081-706a-044b-7d5a923096f2",
+        "dni": "123"
+      }
+    ],
+    [
+      "USER#84d86418-9081-706a-044b-7d5a923096f2||PROFILE#",
+      {
+        "pk": "USER#84d86418-9081-706a-044b-7d5a923096f2",
+        "sk": "PROFILE#",
+        "userId": "84d86418-9081-706a-044b-7d5a923096f2",
+        "dni": "123",
+        "nombres": "Sebas",
+        "apellidos": "Muñoz",
+        "direccion": "X",
+        "telefono": "123",
+        "email": "sebas+test@correo.com",
+        "rol": "cliente",
+        "status": "ACTIVE",
+        "createdAt": "2025-12-18T00:49:05.766Z",
+        "updatedAt": "2025-12-18T00:49:05.766Z"
+      }
+    ],
+    [
+      "EMAIL#sebasxd@gmail.com||USER#24589448-d0a1-7070-f008-4cb97304209f",
+      {
+        "pk": "EMAIL#sebasxd@gmail.com",
+        "sk": "USER#24589448-d0a1-7070-f008-4cb97304209f",
+        "userId": "24589448-d0a1-7070-f008-4cb97304209f",
+        "email": "sebasxd@gmail.com"
+      }
+    ],
+    [
+      "USER#24589448-d0a1-7070-f008-4cb97304209f||PROFILE#",
+      {
+        "pk": "USER#24589448-d0a1-7070-f008-4cb97304209f",
+        "sk": "PROFILE#",
+        "userId": "24589448-d0a1-7070-f008-4cb97304209f",
+        "dni": "123123123",
+        "nombres": "66",
+        "apellidos": "66",
+        "direccion": "66",
+        "telefono": "66",
+        "email": "sebasxd@gmail.com",
+        "rol": "cliente",
+        "status": "ACTIVE",
+        "createdAt": "2025-12-18T00:50:51.141Z",
+        "updatedAt": "2025-12-18T13:39:34.316Z",
+        "passwordHash": "$2b$10$jCZLBjvIMH3UMjXBvDUYe.KMEJlT8GpJsVkjAyiAw6D3aTdVSRSpO"
+      }
+    ],
+    [
+      "DNI#123123123||USER#24589448-d0a1-7070-f008-4cb97304209f",
+      {
+        "pk": "DNI#123123123",
+        "sk": "USER#24589448-d0a1-7070-f008-4cb97304209f",
+        "userId": "24589448-d0a1-7070-f008-4cb97304209f",
+        "dni": "123123123"
+      }
+    ],
+    [
+      "EMAIL#admin@gmail.com||USER#d418d4b8-00b1-70d5-343d-e474b472804a",
+      {
+        "pk": "EMAIL#admin@gmail.com",
+        "sk": "USER#d418d4b8-00b1-70d5-343d-e474b472804a",
+        "userId": "d418d4b8-00b1-70d5-343d-e474b472804a",
+        "email": "admin@gmail.com"
+      }
+    ],
+    [
+      "USER#d418d4b8-00b1-70d5-343d-e474b472804a||PROFILE#",
+      {
+        "pk": "USER#d418d4b8-00b1-70d5-343d-e474b472804a",
+        "sk": "PROFILE#",
+        "userId": "d418d4b8-00b1-70d5-343d-e474b472804a",
+        "dni": "919191991",
+        "nombres": "1231",
+        "apellidos": "123123",
+        "direccion": "2325",
+        "telefono": "457567",
+        "email": "admin@gmail.com",
+        "rol": "admin",
+        "status": "ACTIVE",
+        "createdAt": "2025-12-18T13:40:22.778Z",
+        "updatedAt": "2025-12-18T13:43:10.673Z",
+        "passwordHash": "$2b$10$m5Ijbu6WmAEBaCwmg0ggJ.qIi4NQiGq7ubRBIl55bpgN73rR6dSKi"
+      }
+    ],
+    [
+      "DNI#919191991||USER#d418d4b8-00b1-70d5-343d-e474b472804a",
+      {
+        "pk": "DNI#919191991",
+        "sk": "USER#d418d4b8-00b1-70d5-343d-e474b472804a",
+        "userId": "d418d4b8-00b1-70d5-343d-e474b472804a",
+        "dni": "919191991"
+      }
     ]
   ],
   "Carts": [
@@ -353,6 +513,15 @@
         "sk": "META#",
         "ivaRate": 0.04,
         "createdAt": "2025-12-13T20:00:18.662Z"
+      }
+    ],
+    [
+      "CART#USER#24589448-d0a1-7070-f008-4cb97304209f||META#",
+      {
+        "pk": "CART#USER#24589448-d0a1-7070-f008-4cb97304209f",
+        "sk": "META#",
+        "ivaRate": 0.04,
+        "createdAt": "2025-12-18T13:39:41.584Z"
       }
     ]
   ],
@@ -463,6 +632,42 @@
         "cantidad": 3,
         "subtotal": 195,
         "createdAt": "2025-12-13T21:41:15.839Z"
+      }
+    ],
+    [
+      "ORDER#USER#24589448-d0a1-7070-f008-4cb97304209f||ORDER#027833ba-4183-4da1-96f7-3fc467fa23e7",
+      {
+        "pk": "ORDER#USER#24589448-d0a1-7070-f008-4cb97304209f",
+        "sk": "ORDER#027833ba-4183-4da1-96f7-3fc467fa23e7",
+        "orderId": "027833ba-4183-4da1-96f7-3fc467fa23e7",
+        "usuarioId": "24589448-d0a1-7070-f008-4cb97304209f",
+        "fechaISO": "2025-12-18T13:39:48.525Z",
+        "subtotal": 135,
+        "iva": 5.4,
+        "total": 140.4,
+        "ivaRate": 0.04,
+        "meta": {
+          "razonSocial": "66 66",
+          "direccion": "66",
+          "dni": "123123123",
+          "email": "sebasxd@gmail.com"
+        },
+        "createdAt": "2025-12-18T13:39:48.525Z"
+      }
+    ],
+    [
+      "ORDER#USER#24589448-d0a1-7070-f008-4cb97304209f||ORDER#027833ba-4183-4da1-96f7-3fc467fa23e7#ITEM#978-0131103627",
+      {
+        "pk": "ORDER#USER#24589448-d0a1-7070-f008-4cb97304209f",
+        "sk": "ORDER#027833ba-4183-4da1-96f7-3fc467fa23e7#ITEM#978-0131103627",
+        "orderId": "027833ba-4183-4da1-96f7-3fc467fa23e7",
+        "usuarioId": "24589448-d0a1-7070-f008-4cb97304209f",
+        "libroId": "978-0131103627",
+        "titulo": "The C Programming Language",
+        "precio": 45,
+        "cantidad": 3,
+        "subtotal": 135,
+        "createdAt": "2025-12-18T13:39:48.525Z"
       }
     ]
   ]

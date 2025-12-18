@@ -59,6 +59,7 @@ export class InvitadoIngresoPresenter extends Presenter {
         password: pass,
         rol, // "admin" o "cliente" (el backend espera esto en minúscula)
       });
+      console.log("Token recibido:", token);
 
       if (!token) {
         throw new Error("No se recibió token de autenticación.");

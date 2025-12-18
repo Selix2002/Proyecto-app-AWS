@@ -485,14 +485,29 @@ app.post("/api/autenticar", async (req, res) => {
   }
 });
 
-app.get("/api/usuarios/actual", requireAuth, (req, res) => {
+app.get("/api/usuarios/actual", requireAuth, async (req, res) => {
   try {
-    const usuario = req.user;
-    if (!usuario) return res.status(404).json({ message: "Usuario no encontrado" });
-    res.json(safeUser(usuario));
+    const claims = req.user; // o req.auth, según tu middleware
+    const sub = claims?.sub;
+
+    if (!sub) return res.status(401).json({ message: "Token inválido" });
+
+    // 1) trae perfil DynamoDB por sub (tu userId)
+    const profile = await model.users.getById(sub);
+    if (!profile) return res.status(404).json({ message: "Usuario no encontrado" });
+
+    // 2) rol desde grupos del token
+    const groups = claims["cognito:groups"] ?? [];
+    const rol = groups.includes("admin") ? "admin" : "cliente";
+
+    // 3) devuelve shape compatible con tu front
+    return res.json({
+      ...safeUser(profile),
+      rol,
+    });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ message: err.message ?? "Error al obtener usuario actual" });
+    return res.status(500).json({ message: err.message ?? "Error al obtener usuario actual" });
   }
 });
 
