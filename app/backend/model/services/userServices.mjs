@@ -128,81 +128,81 @@ export class UserService {
         return Item ? sanitizeUser(Item) : null;
     }
 
-async addUser(data) {
-  data = data ?? {};
+    async addUser(data) {
+        data = data ?? {};
 
-  const required = ["dni", "nombres", "apellidos", "direccion", "telefono", "email", "userId"];
-  for (const k of required) {
-    const v = String(data[k] ?? "").trim();
-    if (!v) throw new Error(`Falta el campo: ${k}`);
-    data[k] = v;
-  }
+        const required = ["dni", "nombres", "apellidos", "direccion", "telefono", "email", "userId"];
+        for (const k of required) {
+            const v = String(data[k] ?? "").trim();
+            if (!v) throw new Error(`Falta el campo: ${k}`);
+            data[k] = v;
+        }
 
-  data.email = data.email.toLowerCase();
-  if (!data.rol) data.rol = "cliente";
+        data.email = data.email.toLowerCase();
+        if (!data.rol) data.rol = "cliente";
 
-  const userId = data.userId; // <- sub Cognito
+        const userId = data.userId; // <- sub Cognito
 
-  // (Opcional) mantener emailRef si tu app lo usa para lookup rápido
-  const emailRef = {
-    pk: emailPk(data.email),
-    sk: `USER#${userId}`,
-    userId,
-    email: data.email,
-  };
+        // (Opcional) mantener emailRef si tu app lo usa para lookup rápido
+        const emailRef = {
+            pk: emailPk(data.email),
+            sk: `USER#${userId}`,
+            userId,
+            email: data.email,
+        };
 
-  const dniRef = {
-    pk: dniPk(data.dni),
-    sk: `USER#${userId}`,
-    userId,
-    dni: data.dni,
-  };
+        const dniRef = {
+            pk: dniPk(data.dni),
+            sk: `USER#${userId}`,
+            userId,
+            dni: data.dni,
+        };
 
-  const profile = {
-    ...userKey(userId),
-    userId,
-    dni: data.dni,
-    nombres: data.nombres,
-    apellidos: data.apellidos,
-    direccion: data.direccion,
-    telefono: data.telefono,
-    email: data.email,
-    rol: data.rol,              // opcional (NO autoritativo)
-    status: data.status ?? "PENDING_CONFIRMATION",
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  };
+        const profile = {
+            ...userKey(userId),
+            userId,
+            dni: data.dni,
+            nombres: data.nombres,
+            apellidos: data.apellidos,
+            direccion: data.direccion,
+            telefono: data.telefono,
+            email: data.email,
+            rol: data.rol,              // opcional (NO autoritativo)
+            status: data.status ?? "PENDING_CONFIRMATION",
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+        };
 
-  // Unicidad (DNI) + (opcional email). Idealmente esto debería ser TransactWrite.
-  try {
-    await db.put({ TableName: TABLE, Item: emailRef, IfNotExists: true });
-  } catch (e) {
-    if (String(e.message).includes("ConditionalCheckFailed")) {
-      throw new Error("El correo ya está registrado (DynamoDB)");
+        // Unicidad (DNI) + (opcional email). Idealmente esto debería ser TransactWrite.
+        try {
+            await db.put({ TableName: TABLE, Item: emailRef, IfNotExists: true });
+        } catch (e) {
+            if (String(e.message).includes("ConditionalCheckFailed")) {
+                throw new Error("El correo ya está registrado (DynamoDB)");
+            }
+            throw e;
+        }
+
+        try {
+            await db.put({ TableName: TABLE, Item: dniRef, IfNotExists: true });
+        } catch (e) {
+            await db.delete({ TableName: TABLE, Key: { pk: emailRef.pk, sk: emailRef.sk } }).catch(() => { });
+            if (String(e.message).includes("ConditionalCheckFailed")) {
+                throw new Error("El DNI ya está registrado");
+            }
+            throw e;
+        }
+
+        try {
+            await db.put({ TableName: TABLE, Item: profile, IfNotExists: true });
+        } catch (e) {
+            await db.delete({ TableName: TABLE, Key: { pk: dniRef.pk, sk: dniRef.sk } }).catch(() => { });
+            await db.delete({ TableName: TABLE, Key: { pk: emailRef.pk, sk: emailRef.sk } }).catch(() => { });
+            throw e;
+        }
+
+        return sanitizeUser(profile);
     }
-    throw e;
-  }
-
-  try {
-    await db.put({ TableName: TABLE, Item: dniRef, IfNotExists: true });
-  } catch (e) {
-    await db.delete({ TableName: TABLE, Key: { pk: emailRef.pk, sk: emailRef.sk } }).catch(() => {});
-    if (String(e.message).includes("ConditionalCheckFailed")) {
-      throw new Error("El DNI ya está registrado");
-    }
-    throw e;
-  }
-
-  try {
-    await db.put({ TableName: TABLE, Item: profile, IfNotExists: true });
-  } catch (e) {
-    await db.delete({ TableName: TABLE, Key: { pk: dniRef.pk, sk: dniRef.sk } }).catch(() => {});
-    await db.delete({ TableName: TABLE, Key: { pk: emailRef.pk, sk: emailRef.sk } }).catch(() => {});
-    throw e;
-  }
-
-  return sanitizeUser(profile);
-}
 
 
 

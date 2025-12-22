@@ -33,6 +33,7 @@ function assertRequiredStrings(data, keys) {
 
 function parsePositiveInt(val, name) {
     const n = Number(val);
+    console.log("parsePositiveInt:", val, "->", n);
     if (!Number.isFinite(n) || !Number.isInteger(n) || n <= 0) throw new Error(`${name} inválido`);
     return n;
 }
@@ -45,12 +46,10 @@ function parsePositiveNumber(val, name) {
 
 export class LibroService {
     async getLibros() {
-        // OJO: en Dynamo real, scan es caro; para tu simulación está OK
         const { Items } = await db.scan({ TableName: TABLE });
 
-        // Solo devolvemos los registros “META#”
         const libros = (Items ?? [])
-            .filter((it) => (it.sk ?? it.SK) === SK_META)
+            .filter((it) => String(it.pk ?? "").startsWith("BOOK#") && (it.sk ?? it.SK) === SK_META)
             .map(toPublicLibro);
 
         return libros;
@@ -114,50 +113,43 @@ export class LibroService {
         const pk = normalizePk(id);
         if (!pk) throw new Error("Libro no encontrado");
 
-        const { Item: current } = await db.get({
-            TableName: TABLE,
-            Key: { pk, sk: SK_META },
-        });
+        const { Item: current } = await db.get({ TableName: TABLE, Key: { pk, sk: SK_META } });
         if (!current) throw new Error("Libro no encontrado");
 
         patch = patch ?? {};
 
-        // 🔒 Recomendado: no permitir cambiar ISBN (sería cambiar PK)
         if (patch.isbn && String(patch.isbn).trim() !== current.isbn) {
             throw new Error("No se puede cambiar el ISBN");
         }
 
-        // Validaciones si vienen en patch
-        const updated = { ...current };
-
+        const Patch = {};
         if (patch.titulo != null) {
             const v = String(patch.titulo).trim();
             if (!v) throw new Error("titulo inválido");
-            updated.titulo = v;
+            Patch.titulo = v;
         }
         if (patch.autores != null) {
             const v = String(patch.autores).trim();
             if (!v) throw new Error("autores inválido");
-            updated.autores = v;
+            Patch.autores = v;
         }
-        if (patch.resumen != null) {
-            updated.resumen = String(patch.resumen).trim();
-        }
-        if (patch.stock != null) {
-            updated.stock = parsePositiveInt(patch.stock, "Stock");
-        }
-        if (patch.precio != null) {
-            updated.precio = parsePositiveNumber(patch.precio, "Precio");
-        }
+        if (patch.resumen != null) Patch.resumen = String(patch.resumen).trim();
+        if (patch.stock != null) Patch.stock = parsePositiveInt(patch.stock, "Stock");
+        if (patch.precio != null) Patch.precio = parsePositiveNumber(patch.precio, "Precio");
+
+        if (Object.keys(Patch).length === 0) return toPublicLibro(current);
+
+        Patch.updatedAt = new Date().toISOString();
 
         const { Attributes } = await db.update({
             TableName: TABLE,
             Key: { pk, sk: SK_META },
-            Patch: updated,
+            Patch,
         });
 
         return toPublicLibro(Attributes);
     }
+
 
     async removeLibro(id) {
         const pk = normalizePk(id);
@@ -177,10 +169,16 @@ export class LibroService {
 
     async removeAll() {
         const { Items } = await db.scan({ TableName: TABLE });
-        for (const it of Items ?? []) {
+
+        const books = (Items ?? []).filter(
+            (it) => String(it.pk ?? "").startsWith("BOOK#") && (it.sk ?? it.SK) === SK_META
+        );
+
+        for (const it of books) {
             await db.delete({ TableName: TABLE, Key: { pk: it.pk, sk: it.sk ?? it.SK ?? "__nosk__" } });
         }
     }
+
 
     async replaceAll(arr) {
         const list = Array.isArray(arr) ? arr : [];

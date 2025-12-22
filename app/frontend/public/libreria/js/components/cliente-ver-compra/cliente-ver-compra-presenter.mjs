@@ -109,6 +109,7 @@ export class ClienteVerCompraPresenter extends Presenter {
           // Descontar stock de TODOS los ítems
           for (const it of cart.items) {
             const libro = await this.model.getLibroPorId(it.libroId);
+            console.log("Descontando stock libroId=", it.libroId, "stock actual=", libro?.stock, "cantidad=", it.cantidad);
             const nuevoStock = Math.max(0, (libro?.stock ?? 0) - it.cantidad);
             await this.model.updateLibro(it.libroId, { stock: nuevoStock });
           }
