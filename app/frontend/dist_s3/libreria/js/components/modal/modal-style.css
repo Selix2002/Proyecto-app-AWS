@@ -1,0 +1,53 @@
+/* Contenedor general (abarca todo el ancho superior) */
+.modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  z-index: 1000;
+}
+
+/* Oculto por defecto */
+.oculto {
+  display: none;
+}
+
+/* Caja del mensaje */
+.modal-content {
+  pointer-events: all;
+  min-width: 300px;
+  max-width: 500px;
+  margin-top: -100px; 
+  padding: 16px 24px;
+  border-radius: 0 0 8px 8px;
+  box-shadow: 0 3px 6px rgba(0,0,0,0.3);
+  text-align: center;
+  font-weight: 500;
+  color: #fff;
+  transition: margin-top 0.5s ease;
+}
+
+/* Variantes por estado */
+.modal-info {
+  background-color: blue; 
+}
+
+.modal-ok {
+  background-color: green; 
+}
+
+.modal-error {
+  background-color: red;
+}
+
+.modal-aviso {
+  background-color: yellow;
+  color: #333;
+}
+
+/* Clase para mostrar (despliegue) */
+.modal.mostrar .modal-content {
+  margin-top: 0; /* baja a la vista */
+}

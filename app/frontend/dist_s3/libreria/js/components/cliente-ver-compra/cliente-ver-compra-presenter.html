@@ -1,0 +1,57 @@
+<section class="checkout">
+  <h2>Resumen de compra</h2>
+
+  <form id="checkoutForm" novalidate>
+    <div class="grid-2">
+      <label>Fecha
+        <input id="fecha" type="date" disabled />
+      </label>
+      <label>DNI
+        <input id="dni" disabled />
+      </label>
+    </div>
+
+    <label>Razón Social
+      <input id="razonSocial" placeholder="Razón Social" />
+    </label>
+
+    <label>Dirección
+      <textarea id="direccion" rows="3" placeholder="Dirección de facturación"></textarea>
+    </label>
+
+    <label>Email
+      <input id="email" type="email" disabled />
+    </label>
+  </form>
+
+  <table id="resumeTable" class="resume-table">
+    <thead>
+      <tr>
+        <th style="width:90px">Cant.</th>
+        <th>Detalle</th>
+        <th style="width:120px">Unidad</th>
+        <th style="width:120px">Total</th>
+      </tr>
+    </thead>
+    <tbody id="resumeBody"></tbody>
+    <tfoot>
+      <tr>
+        <td colspan="3" class="total-label">Subtotal</td>
+        <td id="resumeSubtotal" class="total-value">€ 0</td>
+      </tr>
+      <tr>
+        <td colspan="3" class="total-label">IVA <span id="resumeIvaRate">(4%)</span></td>
+        <td id="resumeIva" class="total-value">€ 0</td>
+      </tr>
+      <tr>
+        <td colspan="3" class="total-label total-final">TOTAL</td>
+        <td id="resumeTotal" class="total-value total-final">€ 0</td>
+      </tr>
+    </tfoot>
+  </table>
+
+  <div class="actions">
+    <button id="volverBtn" type="button">Volver</button>
+    <button id="pagarBtn"  type="button">Pagar</button>
+  </div>
+</section>

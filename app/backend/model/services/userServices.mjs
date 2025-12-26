@@ -1,10 +1,7 @@
 // src/model/services/userServices.mjs
-import bcrypt from "bcrypt";
-import crypto from "node:crypto";
 import { db } from "../db/db.mjs";
 
 const TABLE = "Users";
-const SALT_ROUNDS = 10;
 
 const SK_PROFILE = "PROFILE#";
 
@@ -34,11 +31,7 @@ function sanitizeUser(item) {
     };
 }
 
-async function hashPassword(plainPassword) {
-    const plain = String(plainPassword ?? "").trim();
-    if (!plain) throw new Error("La contraseña no puede estar vacía");
-    return bcrypt.hash(plain, SALT_ROUNDS);
-}
+
 
 export class UserService {
     // ---- helpers internos (índices) ----
@@ -206,27 +199,6 @@ export class UserService {
 
 
 
-    async validate(email, password, rol) {
-        const _email = String(email ?? "").trim().toLowerCase();
-        const _password = String(password ?? "").trim();
-        const _rol = rol != null ? String(rol).trim() : null;
-
-        if (!_email || !_password) return null;
-
-        const userId = await this._getUserIdByEmail(_email);
-        if (!userId) return null;
-
-        const { Item: user } = await db.get({ TableName: TABLE, Key: userKey(userId) });
-        if (!user) return null;
-
-        if (_rol && user.rol !== _rol) return null;
-
-        const ok = await bcrypt.compare(_password, user.passwordHash ?? "");
-        if (!ok) return null;
-
-        // el controlador genera JWT con user.id
-        return sanitizeUser(user);
-    }
 
     async updateUser(id, patch) {
         const userId = String(id ?? "").trim();
@@ -246,12 +218,6 @@ export class UserService {
         if (updates.direccion != null) updates.direccion = String(updates.direccion).trim();
         if (updates.telefono != null) updates.telefono = String(updates.telefono).trim();
 
-        // cambiar password si viene
-        if (updates.password != null) {
-            const newPass = String(updates.password).trim();
-            if (newPass) updates.passwordHash = await hashPassword(newPass);
-            delete updates.password;
-        }
 
         // ✅ email duplicado: reservar nuevo emailRef antes de soltar el viejo
         if (updates.email && updates.email !== current.email) {

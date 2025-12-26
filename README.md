@@ -220,12 +220,12 @@ Los archivos estándar dentro de módulos y entornos cumplen las siguientes func
 
 ---
 
-## 7. 🧱 Ejemplo de Estructura de Carpetas y Archivos `.tf`
+### 7. 🧱 Ejemplo de Estructura de Carpetas y Archivos `.tf`
 
-Para dejarlo aún más claro, a continuación se muestran ejemplos concretos de cómo se verían:
+Para que quede claro cómo se organiza el repo, a continuación se muestran ejemplos **reales** de:
 
-- Un **módulo** en `infra/modules/s3_frontend/` (mantenido por el **Integrante S3**).
-- Un **entorno** en `infra/envs/integrante2/` (entorno personal del **Integrante S3**).
+* Un **módulo** en `infra/modules/s3_frontend/` (mantenido por el **Integrante S3**).
+* Un **entorno** en `infra/envs/Dev-s3/` (entorno personal del **Integrante S3**).
 
 ### 7.1. Ejemplo de módulo: `infra/modules/s3_frontend/`
 
@@ -236,47 +236,86 @@ infra/
         ├── main.tf
         ├── variables.tf
         └── outputs.tf
-````
+```
 
-**`main.tf` (esquema):**
+**`main.tf` (esquema coherente con el módulo actual):**
 
 ```hcl
-resource "aws_s3_bucket" "this" {
-  bucket = "${var.project_prefix}-frontend"
+resource "aws_s3_bucket" "site" {
+  bucket        = var.bucket_name
+  force_destroy = var.force_destroy
+  tags          = var.tags
 }
 
-resource "aws_s3_bucket_website_configuration" "this" {
-  bucket = aws_s3_bucket.this.id
+resource "aws_s3_bucket_website_configuration" "site" {
+  bucket = aws_s3_bucket.site.id
 
   index_document {
-    suffix = "index.html"
+    suffix = var.index_document
   }
+
+  error_document {
+    key = var.error_document
+  }
+}
+
+resource "aws_s3_bucket_public_access_block" "site" {
+  bucket = aws_s3_bucket.site.id
+
+  block_public_acls       = false
+  block_public_policy     = false
+  ignore_public_acls      = false
+  restrict_public_buckets = false
 }
 
 resource "aws_s3_bucket_policy" "public_read" {
-  bucket = aws_s3_bucket.this.id
-  policy = data.aws_iam_policy_document.public_read.json
-}
+  bucket = aws_s3_bucket.site.id
 
-data "aws_iam_policy_document" "public_read" {
-  statement {
-    actions   = ["s3:GetObject"]
-    resources = ["${aws_s3_bucket.this.arn}/*"]
+  policy = jsonencode({
+    Version = "2012-10-17",
+    Statement = [{
+      Sid       = "PublicReadGetObject",
+      Effect    = "Allow",
+      Principal = "*",
+      Action    = "s3:GetObject",
+      Resource  = "${aws_s3_bucket.site.arn}/*"
+    }]
+  })
 
-    principals {
-      type        = "AWS"
-      identifiers = ["*"]
-    }
-  }
+  depends_on = [aws_s3_bucket_public_access_block.site]
 }
 ```
 
 **`variables.tf`:**
 
 ```hcl
-variable "project_prefix" {
+variable "bucket_name" {
   type        = string
-  description = "Prefijo para nombrar el bucket del frontend"
+  description = "Nombre del bucket S3 (debe ser único globalmente)"
+}
+
+variable "index_document" {
+  type        = string
+  default     = "index.html"
+  description = "Documento por defecto del hosting estático"
+}
+
+variable "error_document" {
+  type        = string
+  default     = "index.html"
+  description = "Documento de error (útil para SPAs)"
+}
+
+variable "force_destroy" {
+  type        = bool
+  default     = true
+  description = "Permite destruir el bucket aunque tenga objetos (solo recomendado en dev)"
+}
+
+variable "tags" {
+  type        = map(string)
+  default     = {}
+  description = "Tags opcionales para los recursos"
 }
 ```
 
@@ -284,15 +323,22 @@ variable "project_prefix" {
 
 ```hcl
 output "bucket_name" {
-  value       = aws_s3_bucket.this.bucket
+  value       = aws_s3_bucket.site.bucket
   description = "Nombre del bucket S3 del frontend"
 }
 
 output "website_endpoint" {
-  value       = aws_s3_bucket_website_configuration.this.website_endpoint
-  description = "Endpoint público del sitio estático en S3"
+  value       = aws_s3_bucket_website_configuration.site.website_endpoint
+  description = "Endpoint del sitio estático en S3"
+}
+
+output "website_domain" {
+  value       = aws_s3_bucket_website_configuration.site.website_domain
+  description = "Dominio del sitio estático en S3"
 }
 ```
+
+> Nota: este módulo **deja el bucket público** (public website).
 
 ---
 
@@ -303,28 +349,11 @@ Este entorno lo usa el **Integrante S3** para probar únicamente el despliegue d
 ```text
 infra/
 └── envs/
-    └── integrante2/
+    └── Dev-s3/
         ├── main.tf
-        ├── providers.tf
-        └── variables.tf
-```
-
-**`providers.tf`:**
-
-```hcl
-terraform {
-  required_providers {
-    aws = {
-      source  = "hashicorp/aws"
-      version = "~> 5.0"
-    }
-  }
-}
-
-provider "aws" {
-  region  = var.aws_region
-  profile = var.aws_profile
-}
+        ├── variables.tf
+        ├── outputs.tf
+        └── terraform.tfvars
 ```
 
 **`variables.tf`:**
@@ -332,34 +361,65 @@ provider "aws" {
 ```hcl
 variable "aws_region" {
   type        = string
-  default     = "eu-west-1"
+  default     = "us-east-1"
   description = "Región AWS a utilizar"
 }
 
-variable "aws_profile" {
+# Debe ser ÚNICO globalmente
+variable "bucket_name" {
   type        = string
-  default     = "default"
-  description = "Perfil de credenciales AWS local"
+  description = "Nombre del bucket S3 del frontend (único globalmente)"
 }
+```
 
-variable "project_prefix" {
-  type        = string
-  default     = "libreria-integrante2"
-  description = "Prefijo para nombrar recursos de este entorno"
-}
+**`terraform.tfvars` (ejemplo real):**
+
+```hcl
+bucket_name = "libreria-frontend-uclm-master"
 ```
 
 **`main.tf`:**
 
 ```hcl
-module "s3_frontend" {
-  source         = "../../modules/s3_frontend"
-  project_prefix = var.project_prefix
+terraform {
+  required_version = ">= 1.5.0"
+
+  required_providers {
+    aws = {
+      source  = "hashicorp/aws"
+      version = ">= 5.0"
+    }
+  }
 }
 
-output "frontend_url" {
-  value       = module.s3_frontend.website_endpoint
-  description = "URL del sitio estático desplegado para las pruebas del Integrante S3"
+provider "aws" {
+  region = var.aws_region
+}
+
+module "s3_frontend" {
+  source = "../../modules/s3_frontend"
+
+  bucket_name    = var.bucket_name
+  index_document = "index.html"
+  error_document = "index.html"
+  force_destroy  = true
+
+  tags = {
+    app = "libreria"
+    env = "dev"
+  }
+}
+```
+
+**`outputs.tf`:**
+
+```hcl
+output "bucket_name" {
+  value = module.s3_frontend.bucket_name
+}
+
+output "website_endpoint" {
+  value = module.s3_frontend.website_endpoint
 }
 ```
 
@@ -367,82 +427,23 @@ output "frontend_url" {
 
 ## 8. 🚀 ¿Cómo y dónde se ejecuta Terraform?
 
-Terraform **no se ejecuta desde los módulos**, sino desde los **entornos** en `infra/envs/`, y siempre desde la máquina local de cada integrante.
+Terraform **no se ejecuta desde los módulos**, sino desde los **entornos** en `infra/envs/`.
+Los módulos son “piezas reutilizables”; los entornos son los que definen **providers + variables + qué módulos se despliegan**.
 
 La idea es:
 
 * Cada integrante trabaja en **su entorno personal**, alineado con su rol:
 
-  * `infra/envs/Dev-app/` → Diseñador / Desarrollador de la app (pruebas contra la infraestructura ya creada).
-  * `infra/envs/Dev-s3/` → Integrante S3 (pruebas de bucket y static website).
-  * `infra/envs/Dev-dynamodb/` → Integrante DynamoDB (pruebas de tablas e índices).
-  * `infra/envs/Dev-lambda/` → Integrante Lambda (pruebas de Lambda + IAM + logs).
-* El entorno `infra/envs/shared/` se usa solo para el **despliegue integrado final** (demo con todos los servicios conectados).
+  * `infra/envs/Dev-app/` → App (consume endpoints/outputs).
+  * `infra/envs/Dev-s3/` → S3 Frontend (bucket + hosting estático).
+  * `infra/envs/Dev-dynamodb/` → DynamoDB (tablas/índices).
+  * `infra/envs/Dev-lambda/` → Lambda + IAM + logs.
+* El entorno `infra/envs/shared/` se usa para el **despliegue integrado final** (todos los servicios conectados).
 
 ### Ejemplo: ejecutar Terraform como Integrante S3 (`infra/envs/Dev-s3/`)
 
 ```bash
-# Ubicarse en el entorno personal del Integrante S3
 cd infra/envs/Dev-s3
-
-# Inicializar Terraform (solo la primera vez o tras cambiar providers)
-terraform init
-
-# Ver qué va a crear/cambiar en S3
-terraform plan
-
-# Aplicar los cambios en la cuenta AWS configurada (perfil o variables de entorno)
-terraform apply
-```
-
-### Ejemplo: desplegar el entorno integrado (`shared`)
-
-```bash
-cd infra/envs/shared
-
-terraform init
-terraform plan
-terraform apply
-```
-
-> 🔐 **Importante:**
-> Antes de ejecutar estos comandos, cada integrante debe tener configurado su `AWS_PROFILE` o variables de entorno (`AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`) apuntando a **su propia cuenta de AWS**.
-> 
-```
-```
-
-
-Terraform **no se ejecuta desde los módulos**, sino desde los **entornos** en `infra/envs/`, y siempre desde tu máquina local.
-
-La idea es:
-
-- Cada integrante trabaja en **su entorno personal**:
-  - `infra/envs/Dev-app/`
-  - `infra/envs/Dev-s3/`
-  - `infra/envs/Dev-lambda/`
-  - `infra/envs/Dev-dynamodb/`
-- El entorno `infra/envs/shared/` se usa solo para el **despliegue integrado final**.
-
-### Ejemplo: ejecutar Terraform como integrante2
-
-```bash
-# Ubicarse en el entorno personal
-cd infra/envs/Dev-s3
-
-# Inicializar Terraform (solo la primera vez o tras cambiar providers)
-terraform init
-
-# Ver qué va a crear/cambiar
-terraform plan
-
-# Aplicar los cambios en la cuenta AWS configurada (perfil o variables de entorno)
-terraform apply
-````
-
-### Ejemplo: desplegar el entorno integrado (`shared`)
-
-```bash
-cd infra/envs/shared
 
 terraform init
 terraform plan

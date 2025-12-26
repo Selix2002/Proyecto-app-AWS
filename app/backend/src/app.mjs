@@ -1,18 +1,15 @@
 // src/app/app.mjs
 import express from "express";
-import path from "path";
-import url from "url";
 import dotenv from "dotenv";
 import cors from "cors";
-import { cognitoAuthenticate } from "./auth/cognito-login.mjs"; // ajusta ruta
-import { requireAuth, requireGroup } from "./auth/cognito-verify.mjs"; // ajusta ruta
+import { cognitoAuthenticate } from "./auth/cognito-login.mjs"; 
+import { requireAuth, requireGroup } from "./auth/cognito-verify.mjs";
 import { cognitoSignUp } from "./auth/cognito-signup.mjs";
 
 dotenv.config();
 
 import { model } from "../model/model.mjs";
 
-const STATIC_DIR = url.fileURLToPath(new URL(".", import.meta.url));
 
 export const app = express();
 
@@ -22,17 +19,18 @@ const allowed = (process.env.CORS_ORIGINS ?? "http://localhost:5173")
   .map(s => s.trim())
   .filter(Boolean);
   
-app.use(cors({
+const corsOptions = {
   origin: (origin, cb) => {
-    if (!origin) return cb(null, true); // curl/postman
+    if (!origin) return cb(null, true);
     return allowed.includes(origin) ? cb(null, true) : cb(new Error("CORS blocked"));
   },
   credentials: true,
   allowedHeaders: ["Content-Type", "Authorization"],
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-}));
+};
 
-app.options("*", cors());
+app.use(cors(corsOptions));
+app.options("*", cors(corsOptions));
 // ================== MIDDLEWARES ==================
 
 app.use(express.json());
@@ -727,12 +725,7 @@ app.post("/api/facturas", async (req, res) => {
 // ================== AJUSTES SPA + 404 ==================
 
 
-if (process.env.SERVE_STATIC === "1") {
-  app.use("/", express.static(path.join(STATIC_DIR, "public")));
-  app.use("/libreria*", (req, res) => {
-    res.sendFile(path.join(STATIC_DIR, "public/libreria/index.html"));
-  });
-}
+
 
 
 app.all("*", (req, res) => {

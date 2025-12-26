@@ -12,6 +12,4 @@ const PORT = process.env.PORT;
 
 //await seed();
 
-app.listen(PORT, () => {
-    console.log(`Static HTTP server listening on ${PORT}`);
-});
+//app.listen(PORT, () => {console.log(`Static HTTP server listening on ${PORT}`);});
