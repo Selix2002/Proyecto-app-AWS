@@ -5,6 +5,5 @@ terraform.tfstate.backup
 dynamodb/
 lambda_backend/
 s3_frontend/
-Dev-dynamodb/
 Dev-lambda/
 Dev-s3/
