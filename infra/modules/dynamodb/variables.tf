@@ -1,6 +1,6 @@
 variable "project_prefix" {
   type        = string
-  description = "Prefijo para los nombres de los recursos (ej: 'libreria-juan')"
+  description = "Prefijo para los nombres de los recursos (ej: 'eugenio')"
 }
 
 variable "tags" {
@@ -13,7 +13,7 @@ variable "tags" {
   description = "Etiquetas que se aplicarán a todos los recursos de DynamoDB"
 }
 
-# Puedes añadir esta si quieres dar flexibilidad al equipo
+# Para dar flexibilidad al equipo
 variable "billing_mode" {
   type        = string
   default     = "PAY_PER_REQUEST"
