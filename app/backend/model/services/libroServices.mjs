@@ -1,19 +1,19 @@
 // src/model/services/libroService.mjs
 import { db } from "../db/db.mjs";
-const TABLE = "Books";
-const SK_META = "META#";
 
-function normalizePk(idOrIsbn) {
+const TABLE = process.env.DDB_TABLE_BOOKS ?? "eugenio-books";
+const PK = "bookId";
+
+function normalizeBookId(idOrIsbn) {
     const v = String(idOrIsbn ?? "").trim();
     if (!v) return null;
-    return v.startsWith("BOOK#") ? v : `BOOK#${v}`;
+    return v; // bookId = isbn
 }
 
 function toPublicLibro(item) {
     if (!item) return null;
-    // “id” para compatibilidad con tu API anterior
     return {
-        id: item.isbn,          // <- usa isbn como id público
+        id: item.isbn, // compat
         isbn: item.isbn,
         titulo: item.titulo,
         autores: item.autores,
@@ -33,7 +33,6 @@ function assertRequiredStrings(data, keys) {
 
 function parsePositiveInt(val, name) {
     const n = Number(val);
-    console.log("parsePositiveInt:", val, "->", n);
     if (!Number.isFinite(n) || !Number.isInteger(n) || n <= 0) throw new Error(`${name} inválido`);
     return n;
 }
@@ -47,21 +46,16 @@ function parsePositiveNumber(val, name) {
 export class LibroService {
     async getLibros() {
         const { Items } = await db.scan({ TableName: TABLE });
-
-        const libros = (Items ?? [])
-            .filter((it) => String(it.pk ?? "").startsWith("BOOK#") && (it.sk ?? it.SK) === SK_META)
-            .map(toPublicLibro);
-
-        return libros;
+        return (Items ?? []).map(toPublicLibro);
     }
 
     async getLibroPorId(id) {
-        const pk = normalizePk(id);
-        if (!pk) return null;
+        const bookId = normalizeBookId(id);
+        if (!bookId) return null;
 
         const { Item } = await db.get({
             TableName: TABLE,
-            Key: { pk, sk: SK_META },
+            Key: { [PK]: bookId },
         });
 
         return toPublicLibro(Item);
@@ -70,22 +64,18 @@ export class LibroService {
     async addLibro(data) {
         data = data ?? {};
 
-        // Requeridos (igual que antes)
         assertRequiredStrings(data, ["isbn", "titulo", "autores"]);
-
-        // Si quieres mantener resumen como requerido como en tu schema, agrega aquí:
-        if (data.resumen == null) data.resumen = ""; // o valida requerido si corresponde
+        if (data.resumen == null) data.resumen = "";
         data.resumen = String(data.resumen ?? "").trim();
 
-        // Stock / Precio (igual que antes)
         const stock = parsePositiveInt(data.stock, "Stock");
         const precio = parsePositiveNumber(data.precio, "Precio");
 
         const isbn = data.isbn;
+        const bookId = isbn; // decisión: PK = isbn
 
         const Item = {
-            pk: `BOOK#${isbn}`,
-            sk: SK_META,
+            [PK]: bookId,
             isbn,
             titulo: data.titulo,
             autores: data.autores,
@@ -95,10 +85,9 @@ export class LibroService {
             createdAt: new Date().toISOString(),
         };
 
-        // ✅ Unicidad por ISBN (simula ConditionExpression)
-        // ✅ Si la tabla no existe, db.put fallará por tu _table()
         try {
-            await db.put({ TableName: TABLE, Item, IfNotExists: true });
+            // unicidad por PK
+            await db.put({ TableName: TABLE, Item, IfNotExists: PK });
         } catch (e) {
             if (String(e.message).includes("ConditionalCheckFailed")) {
                 throw new Error("El ISBN ya existe");
@@ -110,14 +99,19 @@ export class LibroService {
     }
 
     async updateLibro(id, patch) {
-        const pk = normalizePk(id);
-        if (!pk) throw new Error("Libro no encontrado");
+        const bookId = normalizeBookId(id);
+        if (!bookId) throw new Error("Libro no encontrado");
 
-        const { Item: current } = await db.get({ TableName: TABLE, Key: { pk, sk: SK_META } });
+        const { Item: current } = await db.get({
+            TableName: TABLE,
+            Key: { [PK]: bookId },
+        });
+
         if (!current) throw new Error("Libro no encontrado");
 
         patch = patch ?? {};
 
+        // Si PK = isbn, no permitas cambiar isbn
         if (patch.isbn && String(patch.isbn).trim() !== current.isbn) {
             throw new Error("No se puede cambiar el ISBN");
         }
@@ -143,51 +137,44 @@ export class LibroService {
 
         const { Attributes } = await db.update({
             TableName: TABLE,
-            Key: { pk, sk: SK_META },
+            Key: { [PK]: bookId },
             Patch,
         });
 
         return toPublicLibro(Attributes);
     }
 
-
     async removeLibro(id) {
-        const pk = normalizePk(id);
-        if (!pk) throw new Error("Libro no encontrado");
+        const bookId = normalizeBookId(id);
+        if (!bookId) throw new Error("Libro no encontrado");
 
         const { Item } = await db.get({
             TableName: TABLE,
-            Key: { pk, sk: SK_META },
+            Key: { [PK]: bookId },
         });
         if (!Item) throw new Error("Libro no encontrado");
 
         await db.delete({
             TableName: TABLE,
-            Key: { pk, sk: SK_META },
+            Key: { [PK]: bookId },
         });
     }
 
     async removeAll() {
         const { Items } = await db.scan({ TableName: TABLE });
-
-        const books = (Items ?? []).filter(
-            (it) => String(it.pk ?? "").startsWith("BOOK#") && (it.sk ?? it.SK) === SK_META
-        );
-
-        for (const it of books) {
-            await db.delete({ TableName: TABLE, Key: { pk: it.pk, sk: it.sk ?? it.SK ?? "__nosk__" } });
+        for (const it of Items ?? []) {
+            const bookId = it?.[PK];
+            if (!bookId) continue;
+            await db.delete({ TableName: TABLE, Key: { [PK]: bookId } });
         }
     }
-
 
     async replaceAll(arr) {
         const list = Array.isArray(arr) ? arr : [];
         await this.removeAll();
 
-        const nuevos = [];
         for (const data of list) {
-            const libro = await this.addLibro(data);
-            nuevos.push(libro);
+            await this.addLibro(data);
         }
         return this.getLibros();
     }

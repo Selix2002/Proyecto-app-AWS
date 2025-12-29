@@ -1,271 +1,208 @@
 // src/model/services/facturaServices.mjs
 import crypto from "node:crypto";
 import { db } from "../db/db.mjs";
-
-import { cartService } from "./cartServices.mjs";  // 👈 ajusta ruta
+import { cartService } from "./cartServices.mjs";
 
 export class FacturaService {
-    constructor() {
-        this.TABLE = "Orders";
+  constructor() {
+    this.TABLE = process.env.DDB_TABLE_ORDERS ?? "eugenio-orders";
+    this.USERID_INDEX = process.env.DDB_ORDERS_USERID_INDEX ?? "UserIdIndex";
+  }
+
+  // ---------- Helpers internos ----------
+
+  _validateMeta(meta) {
+    if (!meta) throw new Error("Faltan datos de factura");
+
+    const required = {
+      razonSocial: "razón social",
+      direccion: "dirección",
+      dni: "dni",
+      email: "email",
+    };
+
+    for (const [key, label] of Object.entries(required)) {
+      const value = String(meta[key] ?? "").trim();
+      if (!value) throw new Error(`Falta ${label}`);
+    }
+  }
+
+  _normEmail(email) {
+    return String(email ?? "").trim().toLowerCase();
+  }
+
+  _normUserId(userId) {
+    const u = String(userId ?? "").trim();
+    if (!u) throw new Error("ID de usuario no existe");
+    return u;
+  }
+
+  _normOrderId(orderId) {
+    const o = String(orderId ?? "").trim();
+    if (!o) throw new Error("OrderId inválido");
+    return o;
+  }
+
+  _toPublicOrder(order, { includeItems = true } = {}) {
+    if (!order) return null;
+    return {
+      id: order.orderId,
+      usuario: order.userId, // compat con tu respuesta anterior
+      fechaISO: order.fechaISO,
+      subtotal: order.subtotal,
+      iva: order.iva,
+      total: order.total,
+      ivaRate: order.ivaRate,
+      meta: order.meta,
+      ...(includeItems ? { items: order.items ?? [] } : {}),
+    };
+  }
+
+  // ---------- API pública ----------
+
+  /**
+   * createFromCart(userId, meta)
+   * - Genera factura desde el carrito.
+   * - Guarda 1 documento en Orders con items embebidos.
+   * - Vacía el carrito si todo sale bien.
+   */
+  async createFromCart(usuarioId, meta = {}) {
+    const userId = this._normUserId(usuarioId);
+    this._validateMeta(meta);
+
+    const resumen = await cartService.get(userId);
+    if (!resumen?.items?.length) throw new Error("Carrito vacío");
+
+    const orderId = crypto.randomUUID();
+    const now = new Date().toISOString();
+
+    const order = {
+      // PK tabla
+      orderId,
+
+      // para el GSI UserIdIndex (partition key = userId)
+      userId,
+
+      // metadata + totales
+      fechaISO: now,
+      subtotal: resumen.subtotal,
+      iva: resumen.iva,
+      total: resumen.total,
+      ivaRate: resumen.ivaRate ?? 0.04,
+
+      meta: {
+        razonSocial: String(meta.razonSocial).trim(),
+        direccion: String(meta.direccion).trim(),
+        dni: String(meta.dni).trim(),
+        email: this._normEmail(meta.email),
+      },
+
+      // items embebidos (1 documento)
+      items: resumen.items.map((x) => ({
+        libroId: String(x.libroId ?? "").trim(),
+        titulo: x.titulo,
+        precio: Number(x.precio) || 0,
+        cantidad: Number(x.cantidad) || 0,
+        subtotal: Number(x.subtotal) || 0,
+      })),
+
+      createdAt: now,
+      updatedAt: now,
+    };
+
+    // Unicidad por orderId
+    await db.put({
+      TableName: this.TABLE,
+      Item: order,
+      IfNotExists: "orderId",
+    });
+
+    // Vaciar carrito
+    await cartService.clear(userId);
+
+    return this._toPublicOrder(order, { includeItems: true });
+  }
+
+  /**
+   * getAll(userId)
+   * - Devuelve todas las facturas del usuario, más recientes primero.
+   * - Usa Query por GSI: UserIdIndex (PK = userId)
+   */
+  async getAll(usuarioId) {
+    const userId = this._normUserId(usuarioId);
+
+    // Si tu wrapper tiene queryRaw, úsalo (recomendado)
+    if (typeof db.queryRaw === "function") {
+      const { Items } = await db.queryRaw({
+        TableName: this.TABLE,
+        IndexName: this.USERID_INDEX,
+        KeyConditionExpression: "#u = :u",
+        ExpressionAttributeNames: { "#u": "userId" },
+        ExpressionAttributeValues: { ":u": userId },
+      });
+
+      const orders = Items ?? [];
+      orders.sort((a, b) => String(b.fechaISO ?? "").localeCompare(String(a.fechaISO ?? "")));
+
+      return orders.map((o) => this._toPublicOrder(o, { includeItems: false }));
     }
 
-    // ---------- Helpers internos ----------
+    // Fallback ultra simple (por si no aplicaste el wrapper nuevo):
+    // Scan + filtro (funciona, pero lento)
+    const { Items } = await db.scan({ TableName: this.TABLE });
+    const orders = (Items ?? []).filter((o) => String(o.userId ?? "") === userId);
+    orders.sort((a, b) => String(b.fechaISO ?? "").localeCompare(String(a.fechaISO ?? "")));
+    return orders.map((o) => this._toPublicOrder(o, { includeItems: false }));
+  }
 
-    _validateMeta(meta) {
-        if (!meta) throw new Error("Faltan datos de factura");
+  /**
+   * getById(userId, orderId)
+   * - GetItem directo por PK orderId.
+   * - Valida que pertenezca al userId.
+   */
+  async getById(usuarioId, orderId) {
+    const userId = this._normUserId(usuarioId);
+    const oid = this._normOrderId(orderId);
 
-        const required = {
-            razonSocial: "razón social",
-            direccion: "dirección",
-            dni: "dni",
-            email: "email",
-        };
+    const { Item } = await db.get({
+      TableName: this.TABLE,
+      Key: { orderId: oid },
+    });
 
-        for (const [key, label] of Object.entries(required)) {
-            const value = String(meta[key] ?? "").trim();
-            if (!value) throw new Error(`Falta ${label}`);
-        }
+    if (!Item) return null;
+    if (String(Item.userId ?? "") !== userId) return null;
+
+    return this._toPublicOrder(Item, { includeItems: true });
+  }
+
+  // ---------- Admin/testing ----------
+
+  async getAllGlobal() {
+    const { Items } = await db.scan({ TableName: this.TABLE });
+    const orders = Items ?? [];
+    orders.sort((a, b) => String(b.fechaISO ?? "").localeCompare(String(a.fechaISO ?? "")));
+    return orders.map((o) => this._toPublicOrder(o, { includeItems: false }));
+  }
+
+  async removeAllGlobal() {
+    const { Items } = await db.scan({ TableName: this.TABLE });
+    for (const it of Items ?? []) {
+      const oid = String(it.orderId ?? "").trim();
+      if (!oid) continue;
+      await db.delete({ TableName: this.TABLE, Key: { orderId: oid } }).catch(() => {});
     }
+  }
 
-    _orderPk(usuarioId) {
-        const u = String(usuarioId ?? "").trim();
-        if (!u) throw new Error("ID de usuario no existe");
-        return `ORDER#USER#${u}`;
-    }
+  async getByIdGlobal(orderId) {
+    const oid = this._normOrderId(orderId);
 
-    _orderSk(orderId) {
-        const o = String(orderId ?? "").trim();
-        if (!o) throw new Error("OrderId inválido");
-        return `ORDER#${o}`;
-    }
+    const { Item } = await db.get({
+      TableName: this.TABLE,
+      Key: { orderId: oid },
+    });
 
-    // ---------- API pública ----------
-
-    /**
-     * createFromCart(userId, meta)
-     * - Genera factura desde el carrito Dynamo.
-     * - Vacía el carrito si todo sale bien.
-     */
-    async createFromCart(usuarioId, meta = {}) {
-        if (!usuarioId) throw new Error("ID de usuario no existe");
-        this._validateMeta(meta);
-
-        // Tomar carrito ya “resumido”
-        const resumen = await cartService.get(usuarioId);
-        if (!resumen?.items?.length) throw new Error("Carrito vacío");
-
-        const orderId = crypto.randomUUID();
-        const pk = this._orderPk(usuarioId);
-        const sk = this._orderSk(orderId);
-
-        const header = {
-            pk,
-            sk,
-            orderId,
-            usuarioId: String(usuarioId),
-            fechaISO: new Date().toISOString(),
-            subtotal: resumen.subtotal,
-            iva: resumen.iva,
-            total: resumen.total,
-            ivaRate: resumen.ivaRate ?? 0.04,
-            meta: {
-                razonSocial: String(meta.razonSocial).trim(),
-                direccion: String(meta.direccion).trim(),
-                dni: String(meta.dni).trim(),
-                email: String(meta.email).trim().toLowerCase(),
-            },
-            createdAt: new Date().toISOString(),
-        };
-
-        // Guardar header
-        await db.put({ TableName: this.TABLE, Item: header, IfNotExists: true });
-
-        // Guardar items
-        for (const it of resumen.items) {
-            const libroId = String(it.libroId ?? "").trim(); // isbn
-            const item = {
-                pk,
-                sk: `${sk}#ITEM#${libroId}`,
-                orderId,
-                usuarioId: String(usuarioId),
-                libroId,
-                titulo: it.titulo,
-                precio: it.precio,
-                cantidad: it.cantidad,
-                subtotal: it.subtotal,
-                createdAt: header.createdAt,
-            };
-            await db.put({ TableName: this.TABLE, Item: item, IfNotExists: true });
-        }
-
-        // Vaciar carrito
-        await cartService.clear(usuarioId);
-
-        // Devolver estructura similar a Mongoose (sin _id real)
-        return {
-            id: orderId,
-            usuario: String(usuarioId),
-            fechaISO: header.fechaISO,
-            subtotal: header.subtotal,
-            iva: header.iva,
-            total: header.total,
-            ivaRate: header.ivaRate,
-            items: resumen.items.map((x) => ({
-                libroId: x.libroId,
-                titulo: x.titulo,
-                precio: x.precio,
-                cantidad: x.cantidad,
-                subtotal: x.subtotal,
-            })),
-            meta: header.meta,
-        };
-    }
-
-    /**
-     * getAll(userId)
-     * - Devuelve todas las facturas (headers) del usuario, más recientes primero.
-     */
-    async getAll(usuarioId) {
-        const pk = this._orderPk(usuarioId);
-
-        const { Items } = await db.query({
-            TableName: this.TABLE,
-            pk,
-            beginsWithSk: "ORDER#",
-        });
-
-        // Items trae headers + items. Nos quedamos solo con headers (sk == ORDER#uuid)
-        const headers = (Items ?? []).filter((it) => {
-            const sk = String(it.sk ?? it.SK ?? "");
-            return sk.startsWith("ORDER#") && !sk.includes("#ITEM#");
-        });
-
-        // ordenar por fecha desc (simula createdAt desc)
-        headers.sort((a, b) => String(b.fechaISO ?? "").localeCompare(String(a.fechaISO ?? "")));
-
-        // devolver “factura” sin items (o si quieres, con items, pero es más caro)
-        return headers.map((h) => ({
-            id: h.orderId,
-            usuario: h.usuarioId,
-            fechaISO: h.fechaISO,
-            subtotal: h.subtotal,
-            iva: h.iva,
-            total: h.total,
-            ivaRate: h.ivaRate,
-            meta: h.meta,
-        }));
-    }
-
-    /**
-     * getById(userId, orderId)
-     * - Devuelve header + items de la factura.
-     */
-    async getById(usuarioId, orderId) {
-        if (!usuarioId || !orderId) return null;
-
-        const pk = this._orderPk(usuarioId);
-        const sk = this._orderSk(orderId);
-
-        const { Item: header } = await db.get({
-            TableName: this.TABLE,
-            Key: { pk, sk },
-        });
-
-        if (!header) return null;
-
-        const { Items } = await db.query({
-            TableName: this.TABLE,
-            pk,
-            beginsWithSk: `${sk}#ITEM#`,
-        });
-
-        const items = (Items ?? []).map((it) => ({
-            libroId: it.libroId,
-            titulo: it.titulo,
-            precio: it.precio,
-            cantidad: it.cantidad,
-            subtotal: it.subtotal,
-        }));
-
-        return {
-            id: header.orderId,
-            usuario: header.usuarioId,
-            fechaISO: header.fechaISO,
-            subtotal: header.subtotal,
-            iva: header.iva,
-            total: header.total,
-            ivaRate: header.ivaRate,
-            items,
-            meta: header.meta,
-        };
-    }
-    // ✅ equivalente a Factura.find() (admin/testing)
-    async getAllGlobal() {
-        const { Items } = await db.scan({ TableName: this.TABLE });
-
-        const headers = (Items ?? []).filter((it) => {
-            const sk = String(it.sk ?? it.SK ?? "");
-            return sk.startsWith("ORDER#") && !sk.includes("#ITEM#");
-        });
-
-        headers.sort((a, b) => String(b.fechaISO ?? "").localeCompare(String(a.fechaISO ?? "")));
-
-        return headers.map((h) => ({
-            id: h.orderId,
-            usuario: h.usuarioId,
-            fechaISO: h.fechaISO,
-            subtotal: h.subtotal,
-            iva: h.iva,
-            total: h.total,
-            ivaRate: h.ivaRate,
-            meta: h.meta,
-        }));
-    }
-
-    // ✅ borrar todas (admin/testing)
-    async removeAllGlobal() {
-        const { Items } = await db.scan({ TableName: this.TABLE });
-        for (const it of Items ?? []) {
-            await db.delete({ TableName: this.TABLE, Key: { pk: it.pk, sk: it.sk } });
-        }
-    }
-
-    // ✅ buscar por numero/id (admin/testing) sin userId
-    async getByIdGlobal(orderId) {
-        const { Items } = await db.scan({ TableName: this.TABLE });
-
-        const header = (Items ?? []).find((it) => {
-            const sk = String(it.sk ?? it.SK ?? "");
-            return it.orderId === orderId && sk.startsWith("ORDER#") && !sk.includes("#ITEM#");
-        });
-        if (!header) return null;
-
-        const pk = header.pk;
-        const sk = header.sk;
-        const { Items: orderItems } = await db.query({
-            TableName: this.TABLE,
-            pk,
-            beginsWithSk: `${sk}#ITEM#`,
-        });
-
-        return {
-            id: header.orderId,
-            usuario: header.usuarioId,
-            fechaISO: header.fechaISO,
-            subtotal: header.subtotal,
-            iva: header.iva,
-            total: header.total,
-            ivaRate: header.ivaRate,
-            meta: header.meta,
-            items: (orderItems ?? []).map((x) => ({
-                libroId: x.libroId,
-                titulo: x.titulo,
-                precio: x.precio,
-                cantidad: x.cantidad,
-                subtotal: x.subtotal,
-            })),
-        };
-    }
+    return Item ? this._toPublicOrder(Item, { includeItems: true }) : null;
+  }
 }
 
 export const facturaService = new FacturaService();

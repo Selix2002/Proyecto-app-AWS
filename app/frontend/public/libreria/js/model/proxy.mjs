@@ -1,5 +1,4 @@
 // /public/libreria/js/model/proxy.mjs
-
 import { LibreriaSession } from "../commons/libreria-session.mjs";
 
 // Helper para centralizar manejo de errores del backend
@@ -9,8 +8,7 @@ async function handleResponse(response) {
         if (response.status === 204) return null;
         return await response.json();
     }
-
-    // 👉 Si el backend responde 401, limpiamos la sesión
+    // Manejo especial 401 Unauthorized
     if (response.status === 401) {
         try {
             LibreriaSession.clear?.();
@@ -54,8 +52,7 @@ export const ROL = {
     CLIENTE: "CLIENTE",
 };
 
-const BASE_URL = 'https://dedwm83rc4.execute-api.us-east-1.amazonaws.com/api';
-
+const BASE_URL = window.__BACKEND_URL__ || "http://localhost:3000/api";
 export class LibreriaProxy {
 
     constructor() { }

@@ -1,3 +1,4 @@
+# //envs/Dev-app/outputs.tf
 output "user_pool_id" {
   value = module.cognito.user_pool_id
 }
@@ -11,6 +12,6 @@ output "server_client_id" {
 }
 
 output "server_client_secret" {
-  value     = module.cognito.server_client_secret
-  sensitive = true
+  value = nonsensitive(module.cognito.server_client_secret)
+
 }

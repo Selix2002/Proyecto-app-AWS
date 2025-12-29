@@ -1,26 +1,22 @@
-// src/model/services/userServices.mjs
 import { db } from "../db/db.mjs";
 
-const TABLE = "Users";
+const TABLE = process.env.DDB_TABLE_USERS ?? "eugenio-users";
+const EMAIL_INDEX = process.env.DDB_USERS_EMAIL_INDEX ?? "EmailIndex";
 
-const SK_PROFILE = "PROFILE#";
-
-function userKey(userId) {
-    return { pk: `USER#${userId}`, sk: SK_PROFILE };
+function normEmail(email) {
+    return String(email ?? "").trim().toLowerCase();
 }
-
-function emailPk(email) {
-    return `EMAIL#${String(email ?? "").trim().toLowerCase()}`;
+function normDni(dni) {
+    return String(dni ?? "").trim();
 }
-
-function dniPk(dni) {
-    return `DNI#${String(dni ?? "").trim()}`;
+function normUserId(userId) {
+    return String(userId ?? "").trim();
 }
 
 function sanitizeUser(item) {
     if (!item) return null;
     return {
-        id: item.userId,
+        id: item.userId ?? null,   // compat (tu API anterior)
         dni: item.dni,
         nombres: item.nombres,
         apellidos: item.apellidos,
@@ -31,99 +27,79 @@ function sanitizeUser(item) {
     };
 }
 
-
-
 export class UserService {
-    // ---- helpers internos (índices) ----
-    async _getUserIdByEmail(email) {
-        const pk = emailPk(email);
-        if (!pk || pk === "EMAIL#") return null;
-
-        const { Items } = await db.query({
-            TableName: TABLE,
-            pk,
-            beginsWithSk: "USER#",
-        });
-
-        const ref = Items?.[0];
-        return ref?.userId ?? null;
-    }
-
-    async _getUserIdByDni(dni) {
-        const pk = dniPk(dni);
-        if (!pk || pk === "DNI#") return null;
-
-        const { Items } = await db.query({
-            TableName: TABLE,
-            pk,
-            beginsWithSk: "USER#",
-        });
-
-        const ref = Items?.[0];
-        return ref?.userId ?? null;
-    }
-
-    // ---- API pública igual que antes ----
-
-    async findByEmail(email) {
-        const _email = String(email ?? "").trim().toLowerCase();
-        if (!_email) return null;
-
-        const userId = await this._getUserIdByEmail(_email);
-        if (!userId) return null;
+    // --------- Lookups internos ---------
+    async _getByDni(dni) {
+        const _dni = normDni(dni);
+        if (!_dni) return null;
 
         const { Item } = await db.get({
             TableName: TABLE,
-            Key: userKey(userId),
+            Key: { dni: _dni },
         });
 
-        return Item ? sanitizeUser(Item) : null;
+        return Item ?? null;
+    }
+
+    async _getByEmail(email) {
+        const _email = normEmail(email);
+        if (!_email) return null;
+
+        // Si tienes queryRaw + EmailIndex, úsalo
+        if (typeof db.queryRaw === "function" && EMAIL_INDEX) {
+            const { Items } = await db.queryRaw({
+                TableName: TABLE,
+                IndexName: EMAIL_INDEX,
+                KeyConditionExpression: "#e = :e",
+                ExpressionAttributeNames: { "#e": "email" },
+                ExpressionAttributeValues: { ":e": _email },
+                Limit: 1,
+            });
+            return Items?.[0] ?? null;
+        }
+
+        // Fallback: Scan (funciona siempre)
+        const { Items } = await db.scan({ TableName: TABLE });
+        return (Items ?? []).find((u) => normEmail(u.email) === _email) ?? null;
+    }
+
+    async _getByUserId(userId) {
+        const _uid = normUserId(userId);
+        if (!_uid) return null;
+
+        // No hay índice por userId -> Scan
+        const { Items } = await db.scan({ TableName: TABLE });
+        return (Items ?? []).find((u) => String(u.userId ?? "") === _uid) ?? null;
+    }
+
+    // --------- API pública ---------
+    async findByEmail(email) {
+        return sanitizeUser(await this._getByEmail(email));
     }
 
     async findByEmailAndRole(email, rol) {
-        const _email = String(email ?? "").trim().toLowerCase();
         const _rol = String(rol ?? "").trim();
-        if (!_email || !_rol) return null;
+        if (!_rol) return null;
 
-        const userId = await this._getUserIdByEmail(_email);
-        if (!userId) return null;
+        const item = await this._getByEmail(email);
+        if (!item) return null;
 
-        const { Item } = await db.get({ TableName: TABLE, Key: userKey(userId) });
-        if (!Item) return null;
-
-        return Item.rol === _rol ? sanitizeUser(Item) : null;
+        return item.rol === _rol ? sanitizeUser(item) : null;
     }
 
     async findByDni(dni) {
-        const _dni = String(dni ?? "").trim();
-        if (!_dni) return null;
-
-        const userId = await this._getUserIdByDni(_dni);
-        if (!userId) return null;
-
-        const { Item } = await db.get({
-            TableName: TABLE,
-            Key: userKey(userId),
-        });
-
-        return Item ? sanitizeUser(Item) : null;
+        return sanitizeUser(await this._getByDni(dni));
     }
 
+    // compat: aquí id = userId (sub). Será scan.
     async getById(id) {
-        const userId = String(id ?? "").trim();
-        if (!userId) return null;
-
-        const { Item } = await db.get({
-            TableName: TABLE,
-            Key: userKey(userId),
-        });
-
-        return Item ? sanitizeUser(Item) : null;
+        return sanitizeUser(await this._getByUserId(id));
     }
 
     async addUser(data) {
         data = data ?? {};
 
+        // mantengo tu contrato: userId requerido (sub Cognito)
         const required = ["dni", "nombres", "apellidos", "direccion", "telefono", "email", "userId"];
         for (const k of required) {
             const v = String(data[k] ?? "").trim();
@@ -131,197 +107,126 @@ export class UserService {
             data[k] = v;
         }
 
-        data.email = data.email.toLowerCase();
+        const dni = normDni(data.dni);
+        const email = normEmail(data.email);
+        const userId = normUserId(data.userId);
+
         if (!data.rol) data.rol = "cliente";
 
-        const userId = data.userId; // <- sub Cognito
+        // Evitar email duplicado (no atómico, pero funcional)
+        const existsEmail = await this._getByEmail(email);
+        if (existsEmail) throw new Error("El correo ya está registrado");
 
-        // (Opcional) mantener emailRef si tu app lo usa para lookup rápido
-        const emailRef = {
-            pk: emailPk(data.email),
-            sk: `USER#${userId}`,
-            userId,
-            email: data.email,
-        };
-
-        const dniRef = {
-            pk: dniPk(data.dni),
-            sk: `USER#${userId}`,
-            userId,
-            dni: data.dni,
-        };
-
-        const profile = {
-            ...userKey(userId),
-            userId,
-            dni: data.dni,
-            nombres: data.nombres,
-            apellidos: data.apellidos,
-            direccion: data.direccion,
-            telefono: data.telefono,
-            email: data.email,
-            rol: data.rol,              // opcional (NO autoritativo)
+        const Item = {
+            dni,                // PK real
+            userId,             // sub Cognito guardado como atributo
+            nombres: data.nombres.trim(),
+            apellidos: data.apellidos.trim(),
+            direccion: data.direccion.trim(),
+            telefono: data.telefono.trim(),
+            email,
+            rol: String(data.rol).trim(),
             status: data.status ?? "PENDING_CONFIRMATION",
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString(),
         };
 
-        // Unicidad (DNI) + (opcional email). Idealmente esto debería ser TransactWrite.
+        // Unicidad fuerte por DNI (PK)
         try {
-            await db.put({ TableName: TABLE, Item: emailRef, IfNotExists: true });
+            await db.put({ TableName: TABLE, Item, IfNotExists: "dni" });
         } catch (e) {
-            if (String(e.message).includes("ConditionalCheckFailed")) {
-                throw new Error("El correo ya está registrado (DynamoDB)");
-            }
-            throw e;
-        }
-
-        try {
-            await db.put({ TableName: TABLE, Item: dniRef, IfNotExists: true });
-        } catch (e) {
-            await db.delete({ TableName: TABLE, Key: { pk: emailRef.pk, sk: emailRef.sk } }).catch(() => { });
             if (String(e.message).includes("ConditionalCheckFailed")) {
                 throw new Error("El DNI ya está registrado");
             }
             throw e;
         }
 
-        try {
-            await db.put({ TableName: TABLE, Item: profile, IfNotExists: true });
-        } catch (e) {
-            await db.delete({ TableName: TABLE, Key: { pk: dniRef.pk, sk: dniRef.sk } }).catch(() => { });
-            await db.delete({ TableName: TABLE, Key: { pk: emailRef.pk, sk: emailRef.sk } }).catch(() => { });
-            throw e;
-        }
-
-        return sanitizeUser(profile);
+        return sanitizeUser(Item);
     }
 
-
-
-
     async updateUser(id, patch) {
-        const userId = String(id ?? "").trim();
-        if (!userId) throw new Error("Usuario no encontrado");
+        patch = patch ?? {};
 
-        const { Item: current } = await db.get({ TableName: TABLE, Key: userKey(userId) });
+        // id = userId (sub) => buscar por scan
+        const current = await this._getByUserId(id);
         if (!current) throw new Error("Usuario no encontrado");
 
-        patch = patch ?? {};
-        const updates = { ...patch };
+        // DNI es PK, no se puede cambiar con update
+        if (patch.dni && normDni(patch.dni) !== normDni(current.dni)) {
+            throw new Error("No se puede cambiar el DNI (es la PK).");
+        }
 
-        // normalizaciones
-        if (updates.email != null) updates.email = String(updates.email).trim().toLowerCase();
-        if (updates.dni != null) updates.dni = String(updates.dni).trim();
-        if (updates.nombres != null) updates.nombres = String(updates.nombres).trim();
-        if (updates.apellidos != null) updates.apellidos = String(updates.apellidos).trim();
-        if (updates.direccion != null) updates.direccion = String(updates.direccion).trim();
-        if (updates.telefono != null) updates.telefono = String(updates.telefono).trim();
+        const updates = {};
 
+        if (patch.email != null) {
+            const nextEmail = normEmail(patch.email);
+            if (!nextEmail) throw new Error("email inválido");
 
-        // ✅ email duplicado: reservar nuevo emailRef antes de soltar el viejo
-        if (updates.email && updates.email !== current.email) {
-            const newEmailRef = {
-                pk: emailPk(updates.email),
-                sk: `USER#${userId}`,
-                userId,
-                email: updates.email,
-                rol: current.rol,
-            };
-
-            try {
-                await db.put({ TableName: TABLE, Item: newEmailRef, IfNotExists: true });
-            } catch (e) {
-                if (String(e.message).includes("ConditionalCheckFailed")) {
+            if (nextEmail !== normEmail(current.email)) {
+                const exists = await this._getByEmail(nextEmail);
+                if (exists && normDni(exists.dni) !== normDni(current.dni)) {
                     throw new Error("El correo ya está registrado");
                 }
-                throw e;
             }
-
-            // borrar ref viejo (best-effort)
-            const oldPk = emailPk(current.email);
-            await db.delete({ TableName: TABLE, Key: { pk: oldPk, sk: `USER#${userId}` } }).catch(() => { });
+            updates.email = nextEmail;
         }
 
-        // ✅ dni duplicado
-        if (updates.dni && updates.dni !== current.dni) {
-            const newDniRef = {
-                pk: dniPk(updates.dni),
-                sk: `USER#${userId}`,
-                userId,
-                dni: updates.dni,
-            };
-
-            try {
-                await db.put({ TableName: TABLE, Item: newDniRef, IfNotExists: true });
-            } catch (e) {
-                if (String(e.message).includes("ConditionalCheckFailed")) {
-                    throw new Error("El DNI ya está registrado");
-                }
-                throw e;
-            }
-
-            const oldPk = dniPk(current.dni);
-            await db.delete({ TableName: TABLE, Key: { pk: oldPk, sk: `USER#${userId}` } }).catch(() => { });
+        if (patch.nombres != null) {
+            const v = String(patch.nombres).trim();
+            if (!v) throw new Error("nombres inválido");
+            updates.nombres = v;
         }
+        if (patch.apellidos != null) {
+            const v = String(patch.apellidos).trim();
+            if (!v) throw new Error("apellidos inválido");
+            updates.apellidos = v;
+        }
+        if (patch.direccion != null) updates.direccion = String(patch.direccion).trim();
+        if (patch.telefono != null) updates.telefono = String(patch.telefono).trim();
+        if (patch.rol != null) updates.rol = String(patch.rol).trim();
+        if (patch.status != null) updates.status = String(patch.status).trim();
 
-        const next = {
-            ...current,
-            ...updates,
-            updatedAt: new Date().toISOString(),
-        };
+        if (Object.keys(updates).length === 0) return sanitizeUser(current);
+
+        updates.updatedAt = new Date().toISOString();
 
         const { Attributes } = await db.update({
             TableName: TABLE,
-            Key: userKey(userId),
-            Patch: next,
+            Key: { dni: current.dni },
+            Patch: updates,
         });
 
         return sanitizeUser(Attributes);
     }
-    // ✅ listar usuarios por rol (para getUsersByRole)
+
     async getByRole(rol) {
         const _rol = String(rol ?? "").trim();
         if (!_rol) return [];
 
-        const { Items } = await db.scan({
-            TableName: TABLE,
-            Filter: (it) => (it.sk === "PROFILE#" && it.rol === _rol),
-        });
-
-        return (Items ?? []).map(sanitizeUser);
+        const { Items } = await db.scan({ TableName: TABLE });
+        return (Items ?? [])
+            .filter((u) => String(u.rol ?? "") === _rol)
+            .map(sanitizeUser);
     }
 
-    // ✅ eliminar usuarios por rol (para removeUsersByRole)
-    // borra: PROFILE + EMAIL# + DNI#
     async removeByRole(rol) {
         const users = await this.getByRole(rol);
-
         for (const u of users) {
-            const userId = String(u.id);
-
-            await db.delete({ TableName: TABLE, Key: { pk: `USER#${userId}`, sk: "PROFILE#" } }).catch(() => { });
-            await db.delete({ TableName: TABLE, Key: { pk: `EMAIL#${u.email}`, sk: `USER#${userId}` } }).catch(() => { });
-            await db.delete({ TableName: TABLE, Key: { pk: `DNI#${u.dni}`, sk: `USER#${userId}` } }).catch(() => { });
+            await db.delete({ TableName: TABLE, Key: { dni: u.dni } }).catch(() => { });
         }
     }
 
-    // ✅ eliminar un usuario por id + rol (para removeUserByIdAndRole)
     async removeByIdAndRole(id, rol) {
-        const userId = String(id ?? "").trim();
         const _rol = String(rol ?? "").trim();
-        if (!userId || !_rol) return false;
+        if (!_rol) return false;
 
-        const u = await this.getById(userId);
-        if (!u || u.rol !== _rol) return false;
+        const current = await this._getByUserId(id);
+        if (!current) return false;
+        if (String(current.rol ?? "") !== _rol) return false;
 
-        await db.delete({ TableName: TABLE, Key: { pk: `USER#${userId}`, sk: "PROFILE#" } }).catch(() => { });
-        await db.delete({ TableName: TABLE, Key: { pk: `EMAIL#${u.email}`, sk: `USER#${userId}` } }).catch(() => { });
-        await db.delete({ TableName: TABLE, Key: { pk: `DNI#${u.dni}`, sk: `USER#${userId}` } }).catch(() => { });
-
+        await db.delete({ TableName: TABLE, Key: { dni: current.dni } }).catch(() => { });
         return true;
     }
-
 }
 
 export const userService = new UserService();

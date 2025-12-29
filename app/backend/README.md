@@ -255,7 +255,14 @@ http://localhost:5173
 Esto permite integración directa con Vite en desarrollo.
 
 ---
+## 📚Crear lambda.zip
 
+Para crear este archivo, necesario para la configuración de lambda, se deben usar los comandos:
+```bash
+npm ci            
+npm run build:lambda
+npm run zip:lambda
+```
 ## ❌ Notas importantes
 
 * ❌ No usa DynamoDB

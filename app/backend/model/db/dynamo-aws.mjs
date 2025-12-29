@@ -35,93 +35,159 @@ function buildUpdateExpression(patch = {}) {
   };
 }
 
+function buildIfNotExistsCondition(ifNotExists) {
+  // Backward compatible:
+  // - true  => attribute_not_exists(pk) AND attribute_not_exists(sk) (single-table old)
+  // - "bookId" => attribute_not_exists(bookId)
+  // - ["bookId","sk"] => attribute_not_exists(bookId) AND attribute_not_exists(sk)
+  if (!ifNotExists) return null;
+
+  if (ifNotExists === true) {
+    return {
+      ConditionExpression: "attribute_not_exists(pk) AND attribute_not_exists(sk)",
+    };
+  }
+
+  const keys = Array.isArray(ifNotExists) ? ifNotExists : [ifNotExists];
+  const names = {};
+  const parts = [];
+  let i = 0;
+
+  for (const k of keys) {
+    i += 1;
+    const nk = `#k${i}`;
+    names[nk] = k;
+    parts.push(`attribute_not_exists(${nk})`);
+  }
+
+  return {
+    ConditionExpression: parts.join(" AND "),
+    ExpressionAttributeNames: names,
+  };
+}
+
 export class DynamoAWS {
   constructor({ tableName, region } = {}) {
-    if (!tableName) throw new Error("DynamoAWS requiere tableName (DDB_TABLE)");
-
     const client = new DynamoDBClient({
       region: region ?? process.env.AWS_REGION ?? "us-east-1",
-      // credenciales: las toma solas desde tu AWS CLI / env vars
     });
 
     this.ddb = DynamoDBDocumentClient.from(client, {
       marshallOptions: { removeUndefinedValues: true },
     });
 
-    this.tableName = tableName;
+    // tableName ahora es opcional (por compatibilidad)
+    this.tableName = tableName ?? null;
   }
 
-  // En AWS hay una sola tabla física (la de Terraform)
-  _table() {
-    return this.tableName;
+  _table(TableName) {
+    const t = TableName ?? this.tableName;
+    if (!t) throw new Error("Falta TableName (multi-tabla). Pasa TableName en cada operación o define tableName por defecto.");
+    return t;
   }
 
   createTable() {
-    // no-op (Terraform ya la crea)
+    // no-op
   }
 
-  async put({ Item, IfNotExists = false }) {
+  async put({ TableName, Item, IfNotExists = false } = {}) {
+    const built = buildIfNotExistsCondition(IfNotExists);
+
     await this.ddb.send(
       new PutCommand({
-        TableName: this._table(),
+        TableName: this._table(TableName),
         Item,
-        ...(IfNotExists
-          ? { ConditionExpression: "attribute_not_exists(pk) AND attribute_not_exists(sk)" }
-          : {}),
+        ...(built ? built : {}),
       })
     );
+
     return {};
   }
 
-  async get({ Key }) {
+  async get({ TableName, Key } = {}) {
     const resp = await this.ddb.send(
       new GetCommand({
-        TableName: this._table(),
+        TableName: this._table(TableName),
         Key,
       })
     );
     return { Item: resp.Item };
   }
 
-  async delete({ Key }) {
+  async delete({ TableName, Key } = {}) {
     await this.ddb.send(
       new DeleteCommand({
-        TableName: this._table(),
+        TableName: this._table(TableName),
         Key,
       })
     );
     return {};
   }
 
-  async scan() {
-    // scan paginado
+  async scan({ TableName, Limit } = {}) {
     let Items = [];
     let ExclusiveStartKey = undefined;
 
     do {
       const resp = await this.ddb.send(
         new ScanCommand({
-          TableName: this._table(),
+          TableName: this._table(TableName),
           ExclusiveStartKey,
+          ...(Limit ? { Limit: Limit } : {}),
         })
       );
+
       Items.push(...(resp.Items ?? []));
       ExclusiveStartKey = resp.LastEvaluatedKey;
+
+      if (Limit && Items.length >= Limit) break;
     } while (ExclusiveStartKey);
 
     return { Items };
   }
 
+  // Query genérico (para GSIs también)
+  async queryRaw({
+    TableName,
+    IndexName,
+    KeyConditionExpression,
+    ExpressionAttributeNames,
+    ExpressionAttributeValues,
+    Limit,
+  } = {}) {
+    if (!KeyConditionExpression) throw new Error("queryRaw requiere KeyConditionExpression");
 
-  async query({ pk, beginsWithSk, skEq, limit } = {}) {
+    let Items = [];
+    let ExclusiveStartKey = undefined;
+
+    do {
+      const resp = await this.ddb.send(
+        new QueryCommand({
+          TableName: this._table(TableName),
+          ...(IndexName ? { IndexName } : {}),
+          KeyConditionExpression,
+          ExpressionAttributeNames,
+          ExpressionAttributeValues,
+          ExclusiveStartKey,
+          ...(Limit ? { Limit: Limit } : {}),
+        })
+      );
+
+      Items.push(...(resp.Items ?? []));
+      ExclusiveStartKey = resp.LastEvaluatedKey;
+
+      if (Limit) break;
+    } while (ExclusiveStartKey);
+
+    return { Items };
+  }
+
+  // Compat: tu query pk/sk antigua (single-table)
+  async query({ TableName, pk, beginsWithSk, skEq, limit } = {}) {
     if (!pk) throw new Error("query requiere pk");
 
-    const ExpressionAttributeNames = {
-      "#pk": "pk",
-    };
-    const ExpressionAttributeValues = {
-      ":pk": pk,
-    };
+    const ExpressionAttributeNames = { "#pk": "pk" };
+    const ExpressionAttributeValues = { ":pk": pk };
 
     let KeyConditionExpression = "#pk = :pk";
 
@@ -135,47 +201,34 @@ export class DynamoAWS {
       KeyConditionExpression += " AND begins_with(#sk, :skpref)";
     }
 
-    // paginado
-    let Items = [];
-    let ExclusiveStartKey = undefined;
-
-    do {
-      const resp = await this.ddb.send(
-        new QueryCommand({
-          TableName: this._table(),
-          KeyConditionExpression,
-          ExpressionAttributeNames,
-          ExpressionAttributeValues,
-          ExclusiveStartKey,
-          ...(limit ? { Limit: limit } : {}),
-        })
-      );
-
-      Items.push(...(resp.Items ?? []));
-      ExclusiveStartKey = resp.LastEvaluatedKey;
-    } while (ExclusiveStartKey && !limit);
-
-    return { Items };
+    return this.queryRaw({
+      TableName,
+      KeyConditionExpression,
+      ExpressionAttributeNames,
+      ExpressionAttributeValues,
+      Limit: limit,
+    });
   }
 
-  async update({ Key, Patch }) {
-    // DynamoDB NO permite actualizar pk/sk, así que los sacamos por seguridad
-    if (Patch?.pk) delete Patch.pk;
-    if (Patch?.sk) delete Patch.sk;
+  async update({ TableName, Key, Patch } = {}) {
+    // Protege claves: no permitas actualizar atributos que son parte del Key
+    if (Key && Patch) {
+      for (const k of Object.keys(Key)) {
+        if (k in Patch) delete Patch[k];
+      }
+    }
 
     const built = buildUpdateExpression(Patch);
     if (!built) return { Attributes: undefined };
 
     const resp = await this.ddb.send(
       new UpdateCommand({
-        TableName: this._table(),
+        TableName: this._table(TableName),
         Key,
         ...built,
         ReturnValues: "ALL_NEW",
       })
     );
-
-
 
     return { Attributes: resp.Attributes };
   }

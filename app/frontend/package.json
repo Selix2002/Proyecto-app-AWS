@@ -10,5 +10,8 @@
   },
   "devDependencies": {
     "vite": "^7.2.4"
+  },
+  "dependencies": {
+    "dotenv": "^17.2.3"
   }
 }

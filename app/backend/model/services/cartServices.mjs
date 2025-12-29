@@ -1,102 +1,112 @@
-// src/model/services/cartServices.mjs
 import { db } from "../db/db.mjs";
-
 
 export class CartService {
   constructor() {
     this.IVA_LIBROS = 0.04;
-    this.TABLE_CARTS = "Carts";
-    this.TABLE_BOOKS = "Books";
+
+    // ✅ nuevas tablas reales
+    this.TABLE_CARTS = process.env.DDB_TABLE_CARTS ?? "eugenio-carts";
+    this.TABLE_BOOKS = process.env.DDB_TABLE_BOOKS ?? "eugenio-books";
+
+    this.CART_PK = "userId";
+    this.BOOK_PK = "bookId"; // asumimos bookId = isbn
   }
 
-  _cartPk(usuarioId) {
+  _cartKey(usuarioId) {
     const u = String(usuarioId ?? "").trim();
     if (!u) throw new Error("ID de usuario no existe");
-    return `CART#USER#${u}`;
+    return { [this.CART_PK]: u };
   }
 
-  _itemSk(isbn) {
-    const v = String(isbn ?? "").trim();
+  _isbn(libroId) {
+    const v = String(libroId ?? "").trim();
     if (!v) throw new Error("Libro inválido");
-    return `ITEM#BOOK#${v}`;
+    return v;
   }
 
   async _getBookById(libroId) {
-    // libroId = isbn
-    const isbn = String(libroId ?? "").trim();
-    if (!isbn) return null;
+    const isbn = this._isbn(libroId);
 
     const { Item } = await db.get({
       TableName: this.TABLE_BOOKS,
-      Key: { pk: `BOOK#${isbn}`, sk: "META#" },
+      Key: { [this.BOOK_PK]: isbn },
     });
 
     return Item ?? null;
   }
 
   async _getOrCreateCart(usuarioId) {
-    const pk = this._cartPk(usuarioId);
+    const Key = this._cartKey(usuarioId);
+    const userId = Key[this.CART_PK];
 
-    // 1) meta
-    let { Item: meta } = await db.get({
-      TableName: this.TABLE_CARTS,
-      Key: { pk, sk: "META#" },
-    });
+    let { Item } = await db.get({ TableName: this.TABLE_CARTS, Key });
 
-    if (!meta) {
-      meta = { pk, sk: "META#", ivaRate: this.IVA_LIBROS, createdAt: new Date().toISOString() };
-      await db.put({ TableName: this.TABLE_CARTS, Item: meta, IfNotExists: true });
-    } else if (meta.ivaRate == null) {
-      meta.ivaRate = this.IVA_LIBROS;
-      await db.update({
-        TableName: this.TABLE_CARTS,
-        Key: { pk, sk: "META#" },
-        Patch: meta,
-      });
+    if (!Item) {
+      Item = {
+        userId,
+        ivaRate: this.IVA_LIBROS,
+        items: [],
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+
+      // Unicidad por userId (si tu DynamoAWS soporta IfNotExists:"userId")
+      await db.put({ TableName: this.TABLE_CARTS, Item, IfNotExists: this.CART_PK });
+    } else {
+      // normaliza campos faltantes
+      if (Item.ivaRate == null) Item.ivaRate = this.IVA_LIBROS;
+      if (!Array.isArray(Item.items)) Item.items = [];
     }
 
-    // 2) items
-    const { Items } = await db.query({
-      TableName: this.TABLE_CARTS,
-      pk,
-      beginsWithSk: "ITEM#BOOK#",
-    });
-
-    const items = (Items ?? []).map((it) => ({
-      libroId: it.libroId,
-      titulo: it.titulo,
-      precio: it.precio,
-      cantidad: it.cantidad,
-      stock: it.stock,
-    }));
-
-    return { pk, ivaRate: meta.ivaRate ?? this.IVA_LIBROS, items };
+    return Item;
   }
 
   _findItem(cart, libroId) {
-    const idStr = String(libroId);
-    return cart.items.find((it) => it.libroId === idStr);
+    const isbn = String(libroId);
+    return (cart.items ?? []).find((it) => String(it.libroId) === isbn);
   }
 
   _toResponse(cart) {
-    const items = cart.items.map((it) => {
-      const subtotal = it.precio * it.cantidad;
+    const ivaRate = Number(cart.ivaRate ?? this.IVA_LIBROS) || this.IVA_LIBROS;
+
+    const items = (cart.items ?? []).map((it) => {
+      const precio = Number(it.precio) || 0;
+      const cantidad = Number(it.cantidad) || 0;
+      const subtotal = precio * cantidad;
+
       return {
         libroId: it.libroId,
         titulo: it.titulo,
-        precio: it.precio,
-        cantidad: it.cantidad,
-        stock: it.stock,
+        precio,
+        cantidad,
+        stock: Number(it.stock) || 0,
         subtotal,
       };
     });
 
     const subtotal = items.reduce((s, it) => s + it.subtotal, 0);
-    const ivaRate = cart.ivaRate ?? this.IVA_LIBROS;
     const iva = subtotal * ivaRate;
     const total = subtotal + iva;
 
     return { items, subtotal, iva, total, ivaRate };
+  }
+
+  async _persistCart(userId, cart) {
+    const now = new Date().toISOString();
+
+    const Patch = {
+      ivaRate: cart.ivaRate ?? this.IVA_LIBROS,
+      items: cart.items ?? [],
+      updatedAt: now,
+    };
+
+    const { Attributes } = await db.update({
+      TableName: this.TABLE_CARTS,
+      Key: { [this.CART_PK]: userId },
+      Patch,
+    });
+
+    return Attributes ?? { ...cart, ...Patch };
   }
 
   // ---------- API pública ----------
@@ -115,151 +125,99 @@ export class CartService {
 
     let n = Number(qty);
     if (!Number.isFinite(n) || n <= 0) throw new Error("Cantidad inválida");
-    if (n > max) n = max;
+    n = Math.min(Math.floor(n), max);
 
     const cart = await this._getOrCreateCart(usuarioId);
-    const pk = cart.pk;
+    const userId = cart.userId;
 
-    const isbn = String(libroId ?? "").trim();
-    const sk = this._itemSk(isbn);
+    const isbn = this._isbn(libroId);
+    const existing = this._findItem(cart, isbn);
 
-    // buscar item actual en Dynamo
-    const { Item: current } = await db.get({
-      TableName: this.TABLE_CARTS,
-      Key: { pk, sk },
-    });
-
-    if (!current) {
-      const item = {
-        pk,
-        sk,
+    if (!existing) {
+      cart.items.push({
         libroId: isbn,
         titulo: libro.titulo,
-        precio: Number(libro.precio),
+        precio: Number(libro.precio) || 0,
         cantidad: n,
         stock: max,
-        createdAt: new Date().toISOString(),
-      };
-
-      await db.put({ TableName: this.TABLE_CARTS, Item: item, IfNotExists: true });
-      cart.items.push({ libroId: item.libroId, titulo: item.titulo, precio: item.precio, cantidad: item.cantidad, stock: item.stock });
-    } else {
-      // actualizar stock + sumar cantidad sin pasar stock
-      const updated = {
-        ...current,
-        stock: max,
-        titulo: libro.titulo,           // opcional: refrescar
-        precio: Number(libro.precio),   // opcional: refrescar
-      };
-      updated.cantidad = Math.min(Number(current.cantidad) + n, updated.stock);
-
-      await db.update({
-        TableName: this.TABLE_CARTS,
-        Key: { pk, sk },
-        Patch: updated,
       });
-
-      // reflejar en cart en memoria
-      const it = this._findItem(cart, isbn);
-      if (it) {
-        it.stock = updated.stock;
-        it.titulo = updated.titulo;
-        it.precio = updated.precio;
-        it.cantidad = updated.cantidad;
-      } else {
-        cart.items.push({ libroId: updated.libroId, titulo: updated.titulo, precio: updated.precio, cantidad: updated.cantidad, stock: updated.stock });
-      }
+    } else {
+      // refresca datos + suma
+      existing.titulo = libro.titulo;
+      existing.precio = Number(libro.precio) || 0;
+      existing.stock = max;
+      existing.cantidad = Math.min((Number(existing.cantidad) || 0) + n, max);
     }
 
-    return this._toResponse(cart);
+    const saved = await this._persistCart(userId, cart);
+    return this._toResponse(saved);
   }
 
   async setQty(usuarioId, libroId, qty) {
     const cart = await this._getOrCreateCart(usuarioId);
-    const pk = cart.pk;
+    const userId = cart.userId;
 
-    const isbn = String(libroId ?? "").trim();
-    const sk = this._itemSk(isbn);
-
-    const { Item: current } = await db.get({
-      TableName: this.TABLE_CARTS,
-      Key: { pk, sk },
-    });
-    if (!current) throw new Error("Item no encontrado");
+    const isbn = this._isbn(libroId);
+    const existing = this._findItem(cart, isbn);
+    if (!existing) throw new Error("Item no encontrado");
 
     const n = Number(qty);
     if (!Number.isFinite(n) || !Number.isInteger(n) || n < 0) {
       throw new Error("Cantidad inválida");
     }
 
-    const max = Number(current.stock) || 0;
-
     if (n === 0) {
-      await db.delete({ TableName: this.TABLE_CARTS, Key: { pk, sk } });
-      cart.items = cart.items.filter((x) => x.libroId !== isbn);
-      return this._toResponse(cart);
+      cart.items = cart.items.filter((x) => String(x.libroId) !== isbn);
+      const saved = await this._persistCart(userId, cart);
+      return this._toResponse(saved);
     }
 
-    const updated = { ...current, cantidad: Math.min(n, max) };
+    // (opcional) refrescar stock desde books para no dejar qty > stock
+    const libro = await this._getBookById(isbn);
+    const max = Number(libro?.stock ?? existing.stock) || 0;
 
-    await db.update({
-      TableName: this.TABLE_CARTS,
-      Key: { pk, sk },
-      Patch: updated,
-    });
+    existing.stock = max;
+    existing.titulo = libro?.titulo ?? existing.titulo;
+    existing.precio = Number(libro?.precio ?? existing.precio) || 0;
+    existing.cantidad = Math.min(n, max);
 
-    const it = this._findItem(cart, isbn);
-    if (it) it.cantidad = updated.cantidad;
-
-    return this._toResponse(cart);
+    const saved = await this._persistCart(userId, cart);
+    return this._toResponse(saved);
   }
 
   async inc(usuarioId, libroId) {
     const cart = await this._getOrCreateCart(usuarioId);
     const it = this._findItem(cart, libroId);
     if (!it) throw new Error("Item no encontrado");
-    return this.setQty(usuarioId, libroId, it.cantidad + 1);
+    return this.setQty(usuarioId, libroId, (Number(it.cantidad) || 0) + 1);
   }
 
   async dec(usuarioId, libroId) {
     const cart = await this._getOrCreateCart(usuarioId);
     const it = this._findItem(cart, libroId);
     if (!it) throw new Error("Item no encontrado");
-    return this.setQty(usuarioId, libroId, it.cantidad - 1);
+    return this.setQty(usuarioId, libroId, (Number(it.cantidad) || 0) - 1);
   }
 
   async remove(usuarioId, libroId) {
     const cart = await this._getOrCreateCart(usuarioId);
-    const pk = cart.pk;
+    const userId = cart.userId;
 
-    const isbn = String(libroId ?? "").trim();
-    const sk = this._itemSk(isbn);
+    const isbn = this._isbn(libroId);
+    const existing = this._findItem(cart, isbn);
+    if (!existing) throw new Error("Item no encontrado");
 
-    const { Item } = await db.get({ TableName: this.TABLE_CARTS, Key: { pk, sk } });
-    if (!Item) throw new Error("Item no encontrado");
+    cart.items = cart.items.filter((x) => String(x.libroId) !== isbn);
 
-    await db.delete({ TableName: this.TABLE_CARTS, Key: { pk, sk } });
-    cart.items = cart.items.filter((x) => x.libroId !== isbn);
-
-    return this._toResponse(cart);
+    const saved = await this._persistCart(userId, cart);
+    return this._toResponse(saved);
   }
 
   async clear(usuarioId) {
     const cart = await this._getOrCreateCart(usuarioId);
-    const pk = cart.pk;
-
-    const { Items } = await db.query({
-      TableName: this.TABLE_CARTS,
-      pk,
-      beginsWithSk: "ITEM#BOOK#",
-    });
-
-    for (const it of Items ?? []) {
-      await db.delete({ TableName: this.TABLE_CARTS, Key: { pk, sk: it.sk ?? it.SK } });
-    }
-
-    // no borramos META#, solo items
     cart.items = [];
+
+    await this._persistCart(cart.userId, cart);
   }
 }
 

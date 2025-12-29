@@ -1,3 +1,4 @@
+#//modules/cognito/variables.tf
 variable "project_prefix" { type = string }
 variable "env"           { type = string }
 

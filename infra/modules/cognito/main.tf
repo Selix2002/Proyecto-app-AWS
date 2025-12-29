@@ -1,3 +1,4 @@
+# //modules/cognito/main.tf
 resource "aws_cognito_user_pool" "this" {
   name = "${var.project_prefix}-${var.env}-user-pool"
 
