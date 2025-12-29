@@ -32,7 +32,7 @@ El equipo está compuesto por 4 integrantes. Tres de ellos se especializan en un
 
 - Mantiene y evoluciona el **backend** en `app/backend/`:
 - Adaptación de Express para funcionar dentro de **AWS Lambda**.
-- Reemplazo de la capa MongoDB por acceso a **DynamoDB** (adaptación de la capa `model`).
+- Acceso a **DynamoDB** (adaptación de la capa `model`).
 - Ajusta el **frontend** para que consuma la Function URL de Lambda (`BASE_URL` en el `LibreriaProxy`).
 - Define, junto con el equipo, los **contratos de datos** (qué espera cada endpoint, qué devuelve).
 - Prueba la aplicación de punta a punta usando el entorno `infra/envs/shared/`.
@@ -453,3 +453,4 @@ terraform apply
 > 🔐 **Importante:**
 
 > Antes de ejecutar estos comandos, cada integrante debe tener configurado su `AWS_PROFILE` o variables de entorno (`AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`) apuntando a **su propia cuenta de AWS**.
+
