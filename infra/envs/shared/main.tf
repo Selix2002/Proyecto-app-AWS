@@ -31,7 +31,7 @@ module "s3_frontend" {
 }
 
 # MÓDULO DYNAMODB
-# ============================================================================
+
 module "dynamodb" {
   source = "../../modules/dynamodb"
 
