@@ -1,23 +1,10 @@
 
-locals {
-  website_enabled = var.enable_static_website
-}
-
 resource "aws_s3_bucket" "this" {
-  bucket        = var.bucket_name
-  force_destroy = var.force_destroy
-  tags          = var.tags
+  bucket = var.bucket_name
+  tags   = var.tags
 }
 
-# Ownership controls: desactiva ACLs (modo recomendado)
-resource "aws_s3_bucket_ownership_controls" "this" {
-  bucket = aws_s3_bucket.this.id
-  rule {
-    object_ownership = "BucketOwnerEnforced"
-  }
-}
-
-# Bloqueo de acceso público: desactivar bloqueos para website público
+# Permitir política pública (GetObject) para website
 resource "aws_s3_bucket_public_access_block" "this" {
   bucket                  = aws_s3_bucket.this.id
   block_public_acls       = false
@@ -26,9 +13,9 @@ resource "aws_s3_bucket_public_access_block" "this" {
   restrict_public_buckets = false
 }
 
-# Website hosting (si está habilitado)
+# Static Website Hosting (SPA → index.html para index y error)
 resource "aws_s3_bucket_website_configuration" "this" {
-  count  = local.website_enabled ? 1 : 0
+  count  = var.enable_static_website ? 1 : 0
   bucket = aws_s3_bucket.this.id
 
   index_document {
@@ -38,11 +25,9 @@ resource "aws_s3_bucket_website_configuration" "this" {
   error_document {
     key = var.error_document
   }
-
-  depends_on = [aws_s3_bucket_public_access_block.this]
 }
 
-# Política pública de solo lectura a los objetos
+# Política pública: permitir GET a objetos
 data "aws_iam_policy_document" "public_read" {
   statement {
     sid     = "PublicReadGetObject"
@@ -54,21 +39,18 @@ data "aws_iam_policy_document" "public_read" {
       identifiers = ["*"]
     }
 
-    resources = [
-      "${aws_s3_bucket.this.arn}/*"
-    ]
+    resources = ["${aws_s3_bucket.this.arn}/*"]
   }
 }
 
-resource "aws_s3_bucket_policy" "public" {
-  bucket     = aws_s3_bucket.this.id
-  policy     = data.aws_iam_policy_document.public_read.json
-  depends_on = [aws_s3_bucket_public_access_block.this]
+resource "aws_s3_bucket_policy" "public_read" {
+  bucket = aws_s3_bucket.this.id
+  policy = data.aws_iam_policy_document.public_read.json
 }
 
-# CORS (opcional)
+# CORS opcional (usa dynamic para listas de reglas)
 resource "aws_s3_bucket_cors_configuration" "this" {
-  count  = var.enable_cors ? 1 : 0
+  count  = length(var.cors_rules) > 0 ? 1 : 0
   bucket = aws_s3_bucket.this.id
 
   dynamic "cors_rule" {
@@ -77,8 +59,8 @@ resource "aws_s3_bucket_cors_configuration" "this" {
       allowed_methods = cors_rule.value.allowed_methods
       allowed_origins = cors_rule.value.allowed_origins
       allowed_headers = cors_rule.value.allowed_headers
-      expose_headers  = try(cors_rule.value.expose_headers, [])
-      max_age_seconds = try(cors_rule.value.max_age_seconds, 0)
+      expose_headers  = try(cors_rule.value.expose_headers, null)
+      max_age_seconds = try(cors_rule.value.max_age_seconds, null)
     }
   }
 }

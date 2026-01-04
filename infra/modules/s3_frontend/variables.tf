@@ -1,61 +1,41 @@
 
 variable "bucket_name" {
-  description = "Nombre del bucket S3 para el frontend (globalmente único)"
   type        = string
+  description = "Nombre del bucket S3 (debe ser único globalmente)"
 }
 
 variable "enable_static_website" {
-  description = "Habilitar hosting estático del bucket"
   type        = bool
   default     = true
+  description = "Habilita el hosting estático del bucket (S3 Website)"
 }
 
 variable "index_document" {
-  description = "Documento index"
   type        = string
   default     = "index.html"
+  description = "Documento principal del sitio"
 }
 
 variable "error_document" {
-  description = "Documento de error"
   type        = string
-  default     = "error.html"
+  default     = "index.html"
+  description = "Documento de error; en SPA suele redirigir a index.html"
 }
 
-variable "enable_cors" {
-  description = "Configurar CORS en el bucket"
-  type        = bool
-  default     = true
+variable "tags" {
+  type        = map(string)
+  default     = {}
+  description = "Etiquetas del bucket"
 }
 
 variable "cors_rules" {
-  description = "Reglas CORS para el bucket"
   type = list(object({
     allowed_methods = list(string)
     allowed_origins = list(string)
     allowed_headers = list(string)
-    expose_headers  = optional(list(string), [])
-    max_age_seconds = optional(number, 0)
+    expose_headers  = optional(list(string))
+    max_age_seconds = optional(number)
   }))
-  default = [
-    {
-      allowed_methods = ["GET", "HEAD"]
-      allowed_origins = ["*"]
-      allowed_headers = ["*"]
-      expose_headers  = []
-      max_age_seconds = 300
-    }
-  ]
-}
-
-variable "force_destroy" {
-  description = "Permitir borrar el bucket aunque tenga objetos (útil en Dev)"
-  type        = bool
-  default     = false
-}
-
-variable "tags" {
-  description = "Etiquetas comunes"
-  type        = map(string)
-  default     = {}
+  default     = []
+  description = "Reglas CORS del bucket (opcional)"
 }
