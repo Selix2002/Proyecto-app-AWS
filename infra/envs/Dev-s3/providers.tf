@@ -12,5 +12,6 @@ terraform {
 
 provider "aws" {
   region  = var.aws_region
-  profile = var.aws_profile # <- activado
+  #profile = var.aws_profile # <- activado # comentado para que no ignore las credenciales temporales de AWS Academy
 }
+
