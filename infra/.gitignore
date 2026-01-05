@@ -2,6 +2,4 @@
 *.tfstate
 .terraform.lock.hcl
 terraform.tfstate.backup
-dynamodb/
-lambda_backend/
-Dev-lambda/
+

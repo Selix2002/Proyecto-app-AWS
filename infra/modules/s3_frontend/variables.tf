@@ -1,4 +1,4 @@
-
+#//modules/s3_frontend/variables.tf
 variable "bucket_name" {
   type        = string
   description = "Nombre del bucket S3 (debe ser único globalmente)"
@@ -39,3 +39,8 @@ variable "cors_rules" {
   default     = []
   description = "Reglas CORS del bucket (opcional)"
 }
+variable "upload_dir" {
+  type    = string
+  default = ""
+}
+

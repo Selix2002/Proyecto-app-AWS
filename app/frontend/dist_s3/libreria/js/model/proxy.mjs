@@ -54,7 +54,7 @@ export const ROL = {
     CLIENTE: "CLIENTE",
 };
 
-const BASE_URL = 'https://dedwm83rc4.execute-api.us-east-1.amazonaws.com/api';
+const BASE_URL = 'https://3rza70s1d5.execute-api.us-east-1.amazonaws.com/api';
 
 export class LibreriaProxy {
 

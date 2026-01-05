@@ -1,4 +1,4 @@
-
+# //Dev-s3/main.tf
 module "s3_frontend" {
   source                = "../../modules/s3_frontend"
   bucket_name           = var.bucket_name
@@ -9,7 +9,7 @@ module "s3_frontend" {
 
   cors_rules = [
     {
-      allowed_methods = ["GET", "HEAD"]
+      allowed_methods = ["GET", "HEAD","POST","PUT","DELETE"]
       allowed_origins = ["*"]
       allowed_headers = ["*"]
       expose_headers  = []
@@ -23,6 +23,7 @@ module "s3_frontend" {
     Stack   = "Frontend"
     Owner   = "Integrante S3"
   }
+  upload_dir = "${path.root}/../../../app/frontend/dist_s3"
 }
 
 output "bucket_name" {

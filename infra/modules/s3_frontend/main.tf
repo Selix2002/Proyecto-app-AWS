@@ -1,4 +1,4 @@
-
+# //modules/s3_frontend/main.tf
 resource "aws_s3_bucket" "this" {
   bucket = var.bucket_name
   tags   = var.tags
@@ -63,4 +63,49 @@ resource "aws_s3_bucket_cors_configuration" "this" {
       max_age_seconds = try(cors_rule.value.max_age_seconds, null)
     }
   }
+}
+
+locals {
+  upload_enabled = trimspace(var.upload_dir) != ""
+  files          = local.upload_enabled ? fileset(var.upload_dir, "**/*") : []
+
+  mime_types = {
+    ".html"  = "text/html"
+    ".css"   = "text/css"
+    ".js"    = "application/javascript"
+    ".json"  = "application/json"
+    ".png"   = "image/png"
+    ".jpg"   = "image/jpeg"
+    ".jpeg"  = "image/jpeg"
+    ".svg"   = "image/svg+xml"
+    ".ico"   = "image/x-icon"
+    ".webp"  = "image/webp"
+    ".woff"  = "font/woff"
+    ".woff2" = "font/woff2"
+    ".ttf"   = "font/ttf"
+    ".map"   = "application/json"
+    ".txt"   = "text/plain"
+    ".mjs" = "application/javascript"
+  }
+}
+
+resource "aws_s3_object" "site" {
+  for_each = local.upload_enabled ? toset(local.files) : []
+
+  bucket = aws_s3_bucket.this.id
+  key    = each.value
+  source = "${var.upload_dir}/${each.value}"
+  etag   = filemd5("${var.upload_dir}/${each.value}")
+
+content_type = lookup(
+  local.mime_types, 
+  lower(
+    length(split(".", each.value)) > 1
+    ? ".${element(reverse(split(".", each.value)), 0)}"
+    : ""
+  ),
+  "application/octet-stream"
+)
+
+
 }
