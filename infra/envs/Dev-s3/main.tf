@@ -1,4 +1,9 @@
 # //Dev-s3/main.tf
+# Configuración necesaria para AWS Academy
+provider "aws" {
+  region = "us-east-1"
+}
+
 module "s3_frontend" {
   source                = "../../modules/s3_frontend"
   bucket_name           = var.bucket_name
@@ -33,3 +38,4 @@ output "bucket_name" {
 output "website_endpoint" {
   value = module.s3_frontend.website_endpoint
 }
+
