@@ -1,4 +1,7 @@
 # //envs/Dev-app/main.tf
+provider "aws" {
+  region = "us-east-1"
+}
 module "cognito" {
   source               = "../../modules/cognito"
   project_prefix       = var.project_prefix
