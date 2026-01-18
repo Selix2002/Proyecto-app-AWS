@@ -44,7 +44,8 @@ Genera una vista previa técnica de los cambios. Terraform comparará el código
 `terraform plan`
 
 ### 3. Aplicar
-Ejecuta la creación real de los recursos. Al ejecutarlo, Terraform te pedirá una confirmación manual (escribe `yes`).
+Ejecuta la creación real de los recursos. Al ejecutarlo, Terraform te pedirá una confirmación manual (escribe `yes`):
+`terraform apply`
 
 ---
 ## Limpieza
